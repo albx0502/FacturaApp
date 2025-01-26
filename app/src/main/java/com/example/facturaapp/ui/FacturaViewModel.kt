@@ -13,6 +13,10 @@ class FacturaViewModel(private val repository: FacturaRepository): ViewModel() {
     private val _facturas = MutableStateFlow<List<FacturaEntity>>(emptyList())
     val facturas: StateFlow<List<FacturaEntity>> = _facturas
 
+    init {
+        loadFacturas()
+    }
+
     fun loadFacturas(){
         viewModelScope.launch{
             _facturas.value = repository.getAllFacturas()

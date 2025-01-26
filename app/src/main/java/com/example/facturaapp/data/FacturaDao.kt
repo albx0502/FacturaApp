@@ -7,7 +7,7 @@ interface FacturaDao {
     @Insert
     suspend fun insertFactura(factura: FacturaEntity)
 
-    @Query("SELECT * FROM facturas")
+    @Query("SELECT * FROM facturas Order BY numero ASC")
     suspend fun getAllFacturas(): List<FacturaEntity>
 
     @Update
