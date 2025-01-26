@@ -4,36 +4,46 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.facturaapp.data.FacturaEntity
 import com.example.facturaapp.data.FacturaRepository
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
-class FacturaViewModel(private val repository: FacturaRepository): ViewModel() {
+class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() {
 
-    private val _facturas = MutableStateFlow<List<FacturaEntity>>(emptyList())
-    val facturas: StateFlow<List<FacturaEntity>> = _facturas
+    // Lista de facturas observando el flujo directamente
+    val facturas: StateFlow<List<FacturaEntity>> = repository.getAllFacturas()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    init {
-        loadFacturas()
-    }
+    // Factura seleccionada para editar
+    private val _facturaToEdit = MutableStateFlow<FacturaEntity?>(null)
+    val facturaToEdit: StateFlow<FacturaEntity?> get() = _facturaToEdit
 
-    fun loadFacturas(){
-        viewModelScope.launch{
-            _facturas.value = repository.getAllFacturas()
+    fun addFactura(factura: FacturaEntity) {
+        viewModelScope.launch {
+            repository.addFactura(factura)
         }
     }
 
-    fun addFacturas(factura: FacturaEntity){
-        viewModelScope.launch{
-            repository.insertFactura(factura)
-            loadFacturas()  //Recarga la lista despues de insertar
-        }
-    }
-
-    fun deleteFacturas(factura: FacturaEntity){
-        viewModelScope.launch{
+    fun deleteFactura(factura: FacturaEntity) {
+        viewModelScope.launch {
             repository.deleteFactura(factura)
-            loadFacturas()  //Recarga la lista despues de insertar
+        }
+    }
+
+    fun editFactura(factura: FacturaEntity) {
+        _facturaToEdit.value = factura
+    }
+
+    fun saveFactura(factura: FacturaEntity) {
+        viewModelScope.launch {
+            if (factura.id != null) {
+                repository.updateFactura(factura)
+            } else {
+                repository.addFactura(factura)
+            }
+            _facturaToEdit.value = null
         }
     }
 }
