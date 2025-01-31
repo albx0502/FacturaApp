@@ -5,7 +5,9 @@ import kotlinx.coroutines.flow.Flow
 class FacturaRepository(private val facturaDao: FacturaDao) {
 
     // Obtener todas las facturas como Flow
-    fun getAllFacturas(): Flow<List<FacturaEntity>> = facturaDao.getAllFacturas()
+    fun getAllFacturas(): Flow<List<FacturaEntity>> {
+        return facturaDao.getAllFacturas()
+    }
 
     suspend fun addFactura(factura: FacturaEntity) {
         facturaDao.insertFactura(factura)

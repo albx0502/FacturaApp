@@ -27,9 +27,9 @@ fun AppNavigation(viewModel: FacturaViewModel) {
         // Pantalla del listado de facturas
         composable(route = "list") {
             FacturaListScreen(
-                facturas = viewModel.facturas.collectAsState().value,
+                viewModel = viewModel, // **Agregar viewModel para que tenga acceso a las facturas**
                 onFacturaClick = { factura ->
-                    navController.navigate("details/${factura.id}") // Cambiado a `factura.id` para alinearse con el modelo actualizado
+                    navController.navigate("details/${factura.id}")
                 },
                 onNavigateToForm = {
                     navController.navigate("form")
@@ -40,7 +40,7 @@ fun AppNavigation(viewModel: FacturaViewModel) {
         // Pantalla de detalles de una factura
         composable(
             route = "details/{facturaId}",
-            arguments = listOf(navArgument("facturaId") { type = NavType.IntType }) // Ajustado a `IntType` para reflejar el ID autogenerado
+            arguments = listOf(navArgument("facturaId") { type = NavType.IntType })
         ) { backStackEntry ->
             val facturaId = backStackEntry.arguments?.getInt("facturaId") ?: -1
             val factura = viewModel.facturas.collectAsState().value.find { it.id == facturaId }
@@ -51,9 +51,15 @@ fun AppNavigation(viewModel: FacturaViewModel) {
                     onEditClick = { facturaToEdit ->
                         viewModel.editFactura(facturaToEdit)
                         navController.navigate("form")
+                    },
+                    onDeleteClick = { facturaToDelete ->
+                        viewModel.deleteFactura(facturaToDelete)
+                        navController.popBackStack() // Vuelve a la lista después de borrar
                     }
                 )
             }
         }
+
     }
 }
+

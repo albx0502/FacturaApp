@@ -7,6 +7,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -17,8 +21,12 @@ import com.example.facturaapp.data.FacturaEntity
 fun FacturaDetailScreen(
     factura: FacturaEntity,
     onBackClick: () -> Unit,
-    onEditClick: (FacturaEntity) -> Unit
+    onEditClick: (FacturaEntity) -> Unit,
+    onDeleteClick: (FacturaEntity) -> Unit
 ) {
+
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -73,9 +81,49 @@ fun FacturaDetailScreen(
                         }
                     }
                 }
+                // Botón "Eliminar"
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Button(
+                            onClick = { showDeleteConfirmation = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Eliminar")
+                        }
+                    }
+                }
             }
         }
     )
+    // Diálogo de confirmación de eliminación
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Confirmar Eliminación") },
+            text = { Text("¿Estás seguro de que deseas eliminar esta factura? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick(factura)
+                        showDeleteConfirmation = false
+                        onBackClick() // Vuelve a la pantalla anterior después de eliminar
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
