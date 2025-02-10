@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "facturas")
 data class FacturaEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0, // Asegura que la ID se genere automáticamente
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val numeroFactura: String,
     val fechaEmision: String,
     val emisor: String,
@@ -17,4 +17,22 @@ data class FacturaEntity(
     val baseImponible: Double,
     val iva: Double,
     val total: Double
-)
+) {
+    // Convertir FacturaEntity a un mapa para Firebase
+    fun toMap(): Map<String, Any> {
+        return mapOf(
+            "id" to id,
+            "numeroFactura" to numeroFactura,
+            "fechaEmision" to fechaEmision,
+            "emisor" to emisor,
+            "emisorNIF" to emisorNIF,
+            "emisorDireccion" to emisorDireccion,
+            "receptor" to receptor,
+            "receptorNIF" to receptorNIF,
+            "receptorDireccion" to receptorDireccion,
+            "baseImponible" to baseImponible,
+            "iva" to iva,
+            "total" to total
+        )
+    }
+}

@@ -33,6 +33,10 @@ class MainActivity : ComponentActivity() {
                 AppNavigation(viewModel = viewModel)
             }
         }
+        lifecycleScope.launch {
+            repository.syncFromFirestore()
+        }
+
 //        lifecycleScope.launch {
 //            val factura = FacturaEntity(
 //                numeroFactura = "12345",
