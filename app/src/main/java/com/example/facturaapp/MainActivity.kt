@@ -22,7 +22,8 @@ class MainActivity : ComponentActivity() {
 
         // Inicializar la base de datos y el repositorio
         val database = DatabaseProvider.getDatabase(applicationContext)
-        val repository = FacturaRepository(database.facturaDao())
+        val repository = FacturaRepository() // Ahora no recibe argumentos
+
 
         // Configurar ViewModelFactory
         val factory = FacturaViewModelFactory(repository)

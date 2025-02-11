@@ -38,7 +38,7 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
     fun deleteFactura(factura: FacturaEntity) {
         viewModelScope.launch {
             try {
-                repository.deleteFactura(factura)
+                repository.deleteFactura(factura.id.toString()) // Ahora pasamos el ID como String
                 setUiMessage("Factura eliminada con éxito")
                 loadFacturas()
             } catch (e: Exception) {
@@ -47,7 +47,7 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
         }
     }
 
-    fun editFactura(factura: FacturaEntity?) {
+        fun editFactura(factura: FacturaEntity?) {
         _facturaToEdit.value = factura
     }
 
