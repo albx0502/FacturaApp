@@ -5,23 +5,21 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FacturaDao {
-    // Insertar una nueva factura
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFactura(factura: FacturaEntity)
 
-    // Actualizar una factura existente
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFacturas(facturas: List<FacturaEntity>) // Método para insertar múltiples facturas
+
     @Update
     suspend fun updateFactura(factura: FacturaEntity)
 
-    // Borrar una factura
     @Delete
     suspend fun deleteFactura(factura: FacturaEntity)
 
-    // Obtener todas las facturas
     @Query("SELECT * FROM facturas ORDER BY id ASC")
-    fun getAllFacturas(): Flow<List<FacturaEntity>>
+    fun getAllFacturas(): kotlinx.coroutines.flow.Flow<List<FacturaEntity>>
 
-    // Obtener una factura por ID
     @Query("SELECT * FROM facturas WHERE id = :id LIMIT 1")
     suspend fun getFacturaById(id: Int): FacturaEntity?
 }

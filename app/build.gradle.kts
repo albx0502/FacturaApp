@@ -73,8 +73,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // ROOM
-    implementation("androidx.room:room-runtime:2.5.0")
-    implementation("androidx.room:room-ktx:2.5.0")
+    implementation(libs.androidx.room.runtime.v250)
+    implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
 
     // Compose
@@ -85,7 +85,8 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
 
+    implementation("com.google.android.gms:play-services-basement:18.2.0")
+
     implementation(libs.firebase.database.ktx)
-    implementation(libs.firebase.firestore.ktx)
-    implementation(libs.firebase.auth.ktx)
+    implementation("com.google.firebase:firebase-firestore-ktx:24.6.0") // Versión compatible con Kotlin 1.9
 }
