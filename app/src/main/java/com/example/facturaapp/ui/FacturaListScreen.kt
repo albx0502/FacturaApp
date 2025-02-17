@@ -14,15 +14,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.facturaapp.data.FacturaEntity
+import java.text.NumberFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FacturaListScreen(
-    viewModel: FacturaViewModel, // **Asegurar que el ViewModel está disponible**
+    viewModel: FacturaViewModel,
     onFacturaClick: (FacturaEntity) -> Unit,
     onNavigateToForm: () -> Unit
 ) {
-    val facturas by viewModel.facturas.collectAsState() // **Se observa directamente el flujo de datos**
+    val facturas by viewModel.facturas.collectAsState()
 
     Scaffold(
         topBar = {
@@ -68,12 +70,16 @@ fun FacturaListScreen(
     )
 }
 
-
 @Composable
 fun FacturaCard(
     factura: FacturaEntity,
     onFacturaClick: (FacturaEntity) -> Unit
 ) {
+    // Para formatear el total
+    val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -82,8 +88,9 @@ fun FacturaCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Mostramos el número de factura (o lo que prefieras)
             Text(
-                text = "Factura N.º: ${factura.id}", // Se usa `id` en lugar de `numeroFactura`
+                text = "Factura N.º: ${factura.numeroFactura}",
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
@@ -95,7 +102,7 @@ fun FacturaCard(
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Total: ${factura.total} €",
+                text = "Total: ${decimalFormat.format(factura.total)} €",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.align(Alignment.End)
             )

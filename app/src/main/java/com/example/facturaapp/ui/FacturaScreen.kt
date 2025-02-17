@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.facturaapp.data.FacturaEntity
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,14 +37,17 @@ fun FacturaScreen(
     var receptorNIF by remember { mutableStateOf("") }
     var receptorDireccion by remember { mutableStateOf("") }
     var baseImponible by remember { mutableStateOf("") }
-    var ivaPorcentaje by remember { mutableStateOf("") }
+    var ivaPorcentaje by remember { mutableStateOf("0") }
+    var tipoFactura by remember { mutableStateOf("Emitida") }
 
-    // SnackBar para mensajes flotantes
+    // SnackBar para mensajes
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Observando los cambios en factura para editar
+    // Observamos la factura en edición
     val facturaToEdit by viewModel.facturaToEdit.collectAsState()
+
+    // Cuando cambia facturaToEdit, rellenamos los campos
     LaunchedEffect(facturaToEdit) {
         facturaToEdit?.let { factura ->
             numeroFactura = factura.numeroFactura
@@ -55,11 +59,17 @@ fun FacturaScreen(
             receptorNIF = factura.receptorNIF
             receptorDireccion = factura.receptorDireccion
             baseImponible = factura.baseImponible.toString()
-            ivaPorcentaje = ((factura.iva / factura.baseImponible) * 100).toString()
+
+            val base = factura.baseImponible
+            val ivaVal = factura.iva
+            val porcentaje = if (base != 0.0) ((ivaVal / base) * 100).toInt() else 0
+            ivaPorcentaje = porcentaje.toString()
+
+            tipoFactura = factura.tipoFactura
         }
     }
 
-    // Mostrando mensajes en el SnackBar
+    // Observamos uiMessage
     val uiMessage by viewModel.uiMessage.collectAsState()
     LaunchedEffect(uiMessage) {
         uiMessage?.let {
@@ -71,16 +81,25 @@ fun FacturaScreen(
     }
 
     // Cálculo dinámico de IVA y total
-    val iva by remember(baseImponible, ivaPorcentaje) {
+    val ivaCalculado by remember(baseImponible, ivaPorcentaje) {
         derivedStateOf {
-            (baseImponible.toDoubleOrNull() ?: 0.0) * (ivaPorcentaje.toDoubleOrNull() ?: 0.0) / 100
+            val baseDouble = baseImponible.toDoubleOrNull() ?: 0.0
+            val ivaDouble = ivaPorcentaje.toDoubleOrNull() ?: 0.0
+            (baseDouble * ivaDouble) / 100
         }
     }
-    val total by remember(baseImponible, iva) {
+    val total by remember(baseImponible, ivaCalculado) {
         derivedStateOf {
-            (baseImponible.toDoubleOrNull() ?: 0.0) + iva
+            (baseImponible.toDoubleOrNull() ?: 0.0) + ivaCalculado
         }
     }
+
+    // Formato para mostrar el total en texto
+    val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+    }
+    val totalFormateado = decimalFormat.format(total)
 
     Scaffold(
         topBar = {
@@ -95,54 +114,57 @@ fun FacturaScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                if (fechaEmision.isNotBlank() &&
-                    emisorEmpresa.isNotBlank() &&
-                    receptorCliente.isNotBlank()
-                ) {
-                    val updatedFactura = facturaToEdit?.copy(
-                        numeroFactura = numeroFactura,
-                        fechaEmision = fechaEmision,
-                        emisor = emisorEmpresa,
-                        emisorNIF = emisorNIF,
-                        emisorDireccion = emisorDireccion,
-                        receptor = receptorCliente,
-                        receptorNIF = receptorNIF,
-                        receptorDireccion = receptorDireccion,
-                        baseImponible = baseImponible.toDoubleOrNull() ?: 0.0,
-                        iva = iva,
-                        total = total
-                    ) ?: FacturaEntity(
-                        numeroFactura = numeroFactura.ifEmpty { UUID.randomUUID().toString() },
-                        fechaEmision = fechaEmision,
-                        emisor = emisorEmpresa,
-                        emisorNIF = emisorNIF,
-                        emisorDireccion = emisorDireccion,
-                        receptor = receptorCliente,
-                        receptorNIF = receptorNIF,
-                        receptorDireccion = receptorDireccion,
-                        baseImponible = baseImponible.toDoubleOrNull() ?: 0.0,
-                        iva = iva,
-                        total = total
-                    )
+                // Si facturaToEdit != null, significa que es una edición; si es null, es creación.
+                // Sin embargo, ahora se maneja en el ViewModel preguntando si "factura.id" está vacío.
+                val newOrEditedFactura = facturaToEdit?.copy(
+                    numeroFactura = numeroFactura,
+                    fechaEmision = fechaEmision,
+                    emisor = emisorEmpresa,
+                    emisorNIF = emisorNIF,
+                    emisorDireccion = emisorDireccion,
+                    receptor = receptorCliente,
+                    receptorNIF = receptorNIF,
+                    receptorDireccion = receptorDireccion,
+                    baseImponible = baseImponible.toDoubleOrNull() ?: 0.0,
+                    iva = ivaCalculado,
+                    total = total,
+                    tipoFactura = tipoFactura
+                ) ?: FacturaEntity(
+                    // Como el ID es asignado por Firestore, no ponemos nada aquí.
+                    id = "",
+                    numeroFactura = if (numeroFactura.isBlank()) UUID.randomUUID().toString() else numeroFactura,
+                    fechaEmision = fechaEmision,
+                    emisor = emisorEmpresa,
+                    emisorNIF = emisorNIF,
+                    emisorDireccion = emisorDireccion,
+                    receptor = receptorCliente,
+                    receptorNIF = receptorNIF,
+                    receptorDireccion = receptorDireccion,
+                    baseImponible = baseImponible.toDoubleOrNull() ?: 0.0,
+                    iva = ivaCalculado,
+                    total = total,
+                    tipoFactura = tipoFactura
+                )
 
-                    viewModel.saveFactura(updatedFactura)
+                viewModel.saveFactura(newOrEditedFactura)
 
-                    if (facturaToEdit == null) {
-                        numeroFactura = ""
-                        fechaEmision = ""
-                        emisorEmpresa = ""
-                        emisorNIF = ""
-                        emisorDireccion = ""
-                        receptorCliente = ""
-                        receptorNIF = ""
-                        receptorDireccion = ""
-                        baseImponible = ""
-                        ivaPorcentaje = ""
-                    } else {
-                        viewModel.editFactura(null)
-                    }
+                // Si era una edición, liberamos la facturaToEdit
+                // y si era nueva, limpiamos campos
+                if (facturaToEdit != null) {
+                    viewModel.editFactura(null)
                 } else {
-                    viewModel.setUiMessage("Por favor, completa todos los campos obligatorios.")
+                    // Limpiar campos tras crear nueva factura
+                    numeroFactura = ""
+                    fechaEmision = ""
+                    emisorEmpresa = ""
+                    emisorNIF = ""
+                    emisorDireccion = ""
+                    receptorCliente = ""
+                    receptorNIF = ""
+                    receptorDireccion = ""
+                    baseImponible = ""
+                    ivaPorcentaje = "0"
+                    tipoFactura = "Emitida"
                 }
             }) {
                 Icon(imageVector = Icons.Default.Check, contentDescription = "Guardar Factura")
@@ -172,7 +194,9 @@ fun FacturaScreen(
 
                     item { SectionHeader(title = "Detalles de la Factura") }
                     item {
-                        DatePickerField(label = "Fecha de Emisión", value = fechaEmision) { fechaEmision = it }
+                        DatePickerField(label = "Fecha de Emisión", value = fechaEmision) {
+                            fechaEmision = it
+                        }
                     }
                     item {
                         FieldCard(
@@ -182,21 +206,28 @@ fun FacturaScreen(
                         ) { baseImponible = it }
                     }
                     item {
-                        FieldCard(
-                            label = "IVA (%)",
-                            value = ivaPorcentaje,
-                            keyboardType = KeyboardType.Number
-                        ) { ivaPorcentaje = it }
+                        IvaDropdownField(
+                            selectedIva = ivaPorcentaje,
+                            onIvaSelected = { newIva -> ivaPorcentaje = newIva }
+                        )
                     }
                     item {
+                        TipoFacturaDropdownField(
+                            selectedTipo = tipoFactura,
+                            onTipoSelected = { tipoFactura = it }
+                        )
+                    }
+                    // Mostramos el total formateado
+                    item {
                         Text(
-                            text = "Total (€): $total",
+                            text = "Total (€): $totalFormateado",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
                 }
 
+                // Snackbar para mostrar mensajes
                 SnackbarHost(
                     hostState = snackbarHostState,
                     modifier = Modifier.align(Alignment.BottomCenter)
@@ -239,7 +270,12 @@ fun DatePickerField(label: String, value: String, onValueChange: (String) -> Uni
 }
 
 @Composable
-fun FieldCard(label: String, value: String, keyboardType: KeyboardType = KeyboardType.Text, onValueChange: (String) -> Unit) {
+fun FieldCard(
+    label: String,
+    value: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    onValueChange: (String) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -253,6 +289,92 @@ fun FieldCard(label: String, value: String, keyboardType: KeyboardType = Keyboar
                 .fillMaxWidth()
                 .padding(8.dp)
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun IvaDropdownField(
+    selectedIva: String,
+    onIvaSelected: (String) -> Unit
+) {
+    val ivaValues = listOf("0", "4", "10", "21")
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = selectedIva,
+            onValueChange = {},
+            label = { Text("IVA (%)") },
+            readOnly = true,
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+                .padding(8.dp)
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            ivaValues.forEach { value ->
+                DropdownMenuItem(
+                    text = { Text(value) },
+                    onClick = {
+                        onIvaSelected(value)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TipoFacturaDropdownField(
+    selectedTipo: String,
+    onTipoSelected: (String) -> Unit
+) {
+    val tipos = listOf("Emitida", "Recibida")
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = selectedTipo,
+            onValueChange = {},
+            label = { Text("Tipo de Factura") },
+            readOnly = true,
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+                .padding(8.dp)
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            tipos.forEach { tipo ->
+                DropdownMenuItem(
+                    text = { Text(tipo) },
+                    onClick = {
+                        onTipoSelected(tipo)
+                        expanded = false
+                    }
+                )
+            }
+        }
     }
 }
 

@@ -18,6 +18,8 @@ navigationCompose = "2.8.5"
 roomCompiler = "2.5.0"
 roomRuntime = "2.6.1"
 roomRuntimeVersion = "2.5.0"
+roomCommon = "2.6.1"
+roomKtx = "2.6.1"
 
 [libraries]
 androidx-activity-compose-v170 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
@@ -47,6 +49,8 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
+androidx-room-common = { group = "androidx.room", name = "room-common", version.ref = "roomCommon" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

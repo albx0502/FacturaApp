@@ -7,14 +7,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.facturaapp.ui.*
+import com.example.facturaapp.ui.FacturaDetailScreen
+import com.example.facturaapp.ui.FacturaListScreen
+import com.example.facturaapp.ui.FacturaScreen
+import com.example.facturaapp.ui.FacturaViewModel
 
+/**
+ * AppNavigation define las pantallas y rutas.
+ */
 @Composable
 fun AppNavigation(viewModel: FacturaViewModel) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "form") {
-        // Pantalla del formulario de facturas
+
+        // Pantalla de creación/edición de facturas
         composable(route = "form") {
             FacturaScreen(
                 viewModel = viewModel,
@@ -24,10 +31,10 @@ fun AppNavigation(viewModel: FacturaViewModel) {
             )
         }
 
-        // Pantalla del listado de facturas
+        // Pantalla de listado de facturas
         composable(route = "list") {
             FacturaListScreen(
-                viewModel = viewModel, // **Agregar viewModel para que tenga acceso a las facturas**
+                viewModel = viewModel,
                 onFacturaClick = { factura ->
                     navController.navigate("details/${factura.id}")
                 },
@@ -38,12 +45,15 @@ fun AppNavigation(viewModel: FacturaViewModel) {
         }
 
         // Pantalla de detalles de una factura
+        // Nota: Usamos NavType.StringType porque id ahora es un String.
         composable(
             route = "details/{facturaId}",
-            arguments = listOf(navArgument("facturaId") { type = NavType.IntType })
+            arguments = listOf(navArgument("facturaId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val facturaId = backStackEntry.arguments?.getInt("facturaId") ?: -1
-            val factura = viewModel.facturas.collectAsState().value.find { it.id == facturaId }
+            val facturaId = backStackEntry.arguments?.getString("facturaId") ?: ""
+            val facturasState = viewModel.facturas.collectAsState()
+            val factura = facturasState.value.find { it.id == facturaId }
+
             factura?.let {
                 FacturaDetailScreen(
                     factura = it,
@@ -54,12 +64,10 @@ fun AppNavigation(viewModel: FacturaViewModel) {
                     },
                     onDeleteClick = { facturaToDelete ->
                         viewModel.deleteFactura(facturaToDelete)
-                        navController.popBackStack() // Vuelve a la lista después de borrar
+                        navController.popBackStack() // Vuelve a la lista
                     }
                 )
             }
         }
-
     }
 }
-

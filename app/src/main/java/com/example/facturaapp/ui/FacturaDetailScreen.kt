@@ -6,15 +6,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.facturaapp.data.FacturaEntity
+import java.text.NumberFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +79,7 @@ fun FacturaDetailScreen(
                         }
                     }
                 }
+
                 // Botón "Eliminar"
                 item {
                     Box(
@@ -126,6 +125,32 @@ fun FacturaDetailScreen(
     }
 }
 
+/**
+ * Devuelve una lista de pares (label, value) para mostrar en la pantalla de detalles.
+ * Aquí aplicamos formateo para valores monetarios si lo deseas.
+ */
+fun getFacturaDetails(factura: FacturaEntity): List<Pair<String, String>> {
+    val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+    }
+    return listOf(
+        "Documento ID (Firestore)" to factura.id,
+        "Número de Factura" to factura.numeroFactura,
+        "Fecha de Emisión" to factura.fechaEmision,
+        "Emisor - Empresa" to factura.emisor,
+        "Emisor - NIF" to factura.emisorNIF,
+        "Emisor - Dirección" to factura.emisorDireccion,
+        "Receptor - Cliente" to factura.receptor,
+        "Receptor - NIF" to factura.receptorNIF,
+        "Receptor - Dirección" to factura.receptorDireccion,
+        "Base Imponible (€)" to decimalFormat.format(factura.baseImponible),
+        "IVA (€)" to decimalFormat.format(factura.iva),
+        "Total (€)" to decimalFormat.format(factura.total),
+        "Tipo de Factura" to factura.tipoFactura
+    )
+}
+
 @Composable
 fun DetailItem(label: String, value: String) {
     Card(
@@ -137,21 +162,4 @@ fun DetailItem(label: String, value: String) {
             Text(text = value, style = MaterialTheme.typography.bodyLarge)
         }
     }
-}
-
-fun getFacturaDetails(factura: FacturaEntity): List<Pair<String, String>> {
-    return listOf(
-        "ID" to factura.id.toString(),
-        "Número de Factura" to factura.numeroFactura,
-        "Fecha de Emisión" to factura.fechaEmision,
-        "Emisor - Empresa" to factura.emisor,
-        "Emisor - NIF" to factura.emisorNIF,
-        "Emisor - Dirección" to factura.emisorDireccion,
-        "Receptor - Cliente" to factura.receptor,
-        "Receptor - NIF" to factura.receptorNIF,
-        "Receptor - Dirección" to factura.receptorDireccion,
-        "Base Imponible (€)" to factura.baseImponible.toString(),
-        "IVA (€)" to factura.iva.toString(),
-        "Total (€)" to factura.total.toString()
-    )
 }
