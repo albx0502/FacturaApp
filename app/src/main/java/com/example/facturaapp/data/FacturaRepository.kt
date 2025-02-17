@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 
 /**
- * FacturaRepository gestiona todas las operaciones con Firestore.
+ * FacturaRepository gestiona las operaciones con Firestore:
+ * - getAllFacturas(), addFactura(), updateFactura(), deleteFactura().
  */
 class FacturaRepository {
 
@@ -16,17 +17,15 @@ class FacturaRepository {
     private val facturaCollection = firestore.collection("facturas")
 
     /**
-     * getAllFacturas()
-     * - Recupera todos los documentos de la colección "facturas".
-     * - Convierte cada documento a FacturaEntity.
+     * Recupera todas las facturas desde "facturas".
      */
     fun getAllFacturas(): Flow<List<FacturaEntity>> = flow {
         try {
             val snapshot = facturaCollection.get().await()
-            val facturas = snapshot.documents.mapNotNull { document ->
-                val factura = document.toObject(FacturaEntity::class.java)
-                // Asegurarnos de que la factura tenga su ID
-                factura?.id = document.id
+            val facturas = snapshot.documents.mapNotNull { doc ->
+                val factura = doc.toObject(FacturaEntity::class.java)
+                // Asignar el doc.id a la factura
+                factura?.id = doc.id
                 factura
             }
             emit(facturas)
@@ -37,33 +36,27 @@ class FacturaRepository {
     }
 
     /**
-     * addFactura(factura)
-     * - Genera un ID automático con .add()
-     * - Asigna ese ID a factura.id y hace un .set() con merge si quieres.
+     * Añade una factura nueva. Genera un ID automáticamente.
      */
     suspend fun addFactura(factura: FacturaEntity) {
         try {
-            // 1) Añadir sin especificar ID (Firestore asigna)
+            // 1) Añadir sin especificar ID => Firestore crea uno
             val docRef = facturaCollection.add(factura.toMap()).await()
 
-            // 2) docRef.id es el ID que Firestore generó
+            // 2) docRef.id => ID generado
             factura.id = docRef.id
 
-            // 3) Opcionalmente, guardamos la factura con el campo id ya asignado (merge).
-            //    De esta forma, en Firestore, la propiedad "id" dentro del documento no quedará vacía.
+            // 3) Opcionalmente, hacemos un set() con merge para que 'id' quede guardado en el documento
             facturaCollection.document(docRef.id)
                 .set(factura.toMap(), SetOptions.merge())
                 .await()
-
         } catch (e: Exception) {
             println("Error al guardar factura en Firebase: ${e.message}")
         }
     }
 
     /**
-     * updateFactura(factura)
-     * - Usa factura.id para actualizar el documento correspondiente.
-     * - Asegúrate de que factura.id no esté vacío.
+     * Actualiza una factura existente (usando factura.id).
      */
     suspend fun updateFactura(factura: FacturaEntity) {
         try {
@@ -72,7 +65,7 @@ class FacturaRepository {
                     .set(factura.toMap(), SetOptions.merge())
                     .await()
             } else {
-                println("No se puede actualizar. El ID está vacío.")
+                println("No se puede actualizar. ID vacío.")
             }
         } catch (e: Exception) {
             println("Error al actualizar factura en Firebase: ${e.message}")
@@ -80,8 +73,7 @@ class FacturaRepository {
     }
 
     /**
-     * deleteFactura(facturaId)
-     * - Elimina el documento con ese ID.
+     * Elimina el documento con la ID dada.
      */
     suspend fun deleteFactura(facturaId: String) {
         try {

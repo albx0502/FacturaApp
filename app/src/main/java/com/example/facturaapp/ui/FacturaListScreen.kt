@@ -24,6 +24,7 @@ fun FacturaListScreen(
     onFacturaClick: (FacturaEntity) -> Unit,
     onNavigateToForm: () -> Unit
 ) {
+    // Observamos la lista de facturas
     val facturas by viewModel.facturas.collectAsState()
 
     Scaffold(
@@ -88,7 +89,7 @@ fun FacturaCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Mostramos el número de factura (o lo que prefieras)
+            // Mostramos "Factura N.º: <numeroFactura>"
             Text(
                 text = "Factura N.º: ${factura.numeroFactura}",
                 style = MaterialTheme.typography.titleMedium

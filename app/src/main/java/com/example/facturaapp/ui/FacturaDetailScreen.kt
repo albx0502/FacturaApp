@@ -22,7 +22,6 @@ fun FacturaDetailScreen(
     onEditClick: (FacturaEntity) -> Unit,
     onDeleteClick: (FacturaEntity) -> Unit
 ) {
-
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -99,6 +98,7 @@ fun FacturaDetailScreen(
             }
         }
     )
+
     // Diálogo de confirmación de eliminación
     if (showDeleteConfirmation) {
         AlertDialog(
@@ -110,7 +110,7 @@ fun FacturaDetailScreen(
                     onClick = {
                         onDeleteClick(factura)
                         showDeleteConfirmation = false
-                        onBackClick() // Vuelve a la pantalla anterior después de eliminar
+                        onBackClick()
                     }
                 ) {
                     Text("Eliminar", color = MaterialTheme.colorScheme.error)
@@ -126,8 +126,8 @@ fun FacturaDetailScreen(
 }
 
 /**
- * Devuelve una lista de pares (label, value) para mostrar en la pantalla de detalles.
- * Aquí aplicamos formateo para valores monetarios si lo deseas.
+ * Crea una lista de pares (label, value) con la información de la factura.
+ * Si quieres formatear más campos, hazlo aquí.
  */
 fun getFacturaDetails(factura: FacturaEntity): List<Pair<String, String>> {
     val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {

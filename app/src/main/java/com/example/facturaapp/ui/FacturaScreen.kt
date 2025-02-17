@@ -21,13 +21,16 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Pantalla de creación/edición de Facturas.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FacturaScreen(
     viewModel: FacturaViewModel,
     onNavigateToList: () -> Unit
 ) {
-    // Estados para los campos del formulario
+    // Estados para campos
     var numeroFactura by remember { mutableStateOf("") }
     var fechaEmision by remember { mutableStateOf("") }
     var emisorEmpresa by remember { mutableStateOf("") }
@@ -47,7 +50,7 @@ fun FacturaScreen(
     // Observamos la factura en edición
     val facturaToEdit by viewModel.facturaToEdit.collectAsState()
 
-    // Cuando cambia facturaToEdit, rellenamos los campos
+    // Cuando entra en modo edición, rellenamos campos
     LaunchedEffect(facturaToEdit) {
         facturaToEdit?.let { factura ->
             numeroFactura = factura.numeroFactura
@@ -69,7 +72,7 @@ fun FacturaScreen(
         }
     }
 
-    // Observamos uiMessage
+    // Observamos mensajes de ViewModel
     val uiMessage by viewModel.uiMessage.collectAsState()
     LaunchedEffect(uiMessage) {
         uiMessage?.let {
@@ -94,7 +97,7 @@ fun FacturaScreen(
         }
     }
 
-    // Formato para mostrar el total en texto
+    // Formateamos el total con coma
     val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
         minimumFractionDigits = 2
         maximumFractionDigits = 2
@@ -107,15 +110,14 @@ fun FacturaScreen(
                 title = { Text("Gestión de Facturas") },
                 actions = {
                     IconButton(onClick = onNavigateToList) {
-                        Icon(imageVector = Icons.Default.List, contentDescription = "Ver Lista de Facturas")
+                        Icon(imageVector = Icons.Default.List, contentDescription = "Ver Lista")
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                // Si facturaToEdit != null, significa que es una edición; si es null, es creación.
-                // Sin embargo, ahora se maneja en el ViewModel preguntando si "factura.id" está vacío.
+                // Construimos FacturaEntity según si es edición o creación
                 val newOrEditedFactura = facturaToEdit?.copy(
                     numeroFactura = numeroFactura,
                     fechaEmision = fechaEmision,
@@ -130,8 +132,7 @@ fun FacturaScreen(
                     total = total,
                     tipoFactura = tipoFactura
                 ) ?: FacturaEntity(
-                    // Como el ID es asignado por Firestore, no ponemos nada aquí.
-                    id = "",
+                    id = "", // El ID se generará en Firestore
                     numeroFactura = if (numeroFactura.isBlank()) UUID.randomUUID().toString() else numeroFactura,
                     fechaEmision = fechaEmision,
                     emisor = emisorEmpresa,
@@ -146,14 +147,14 @@ fun FacturaScreen(
                     tipoFactura = tipoFactura
                 )
 
+                // Guardamos la factura
                 viewModel.saveFactura(newOrEditedFactura)
 
-                // Si era una edición, liberamos la facturaToEdit
-                // y si era nueva, limpiamos campos
+                // Salir del modo edición o limpiar campos
                 if (facturaToEdit != null) {
                     viewModel.editFactura(null)
                 } else {
-                    // Limpiar campos tras crear nueva factura
+                    // Limpiar
                     numeroFactura = ""
                     fechaEmision = ""
                     emisorEmpresa = ""
@@ -217,7 +218,6 @@ fun FacturaScreen(
                             onTipoSelected = { tipoFactura = it }
                         )
                     }
-                    // Mostramos el total formateado
                     item {
                         Text(
                             text = "Total (€): $totalFormateado",
@@ -227,7 +227,7 @@ fun FacturaScreen(
                     }
                 }
 
-                // Snackbar para mostrar mensajes
+                // Snackbar
                 SnackbarHost(
                     hostState = snackbarHostState,
                     modifier = Modifier.align(Alignment.BottomCenter)

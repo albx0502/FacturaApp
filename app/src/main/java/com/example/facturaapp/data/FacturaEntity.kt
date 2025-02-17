@@ -3,14 +3,14 @@ package com.example.facturaapp.data
 import com.google.firebase.firestore.Exclude
 
 /**
- * Entity que representa la Factura en Firestore.
- * - id: String -> ID del documento en Firestore.
- * - numeroFactura, fechaEmision, etc. -> Campos propios de la factura.
+ * Representa una Factura en Firestore.
+ *
+ * - 'id' => ID autogenerado (String).
+ * - 'numeroFactura', 'fechaEmision', etc. => campos de la factura.
+ * - 'tipoFactura' => "Emitida" o "Recibida".
  */
 data class FacturaEntity(
-    // Ahora usamos String para ID.
     var id: String = "",
-
     var numeroFactura: String = "",
     var fechaEmision: String = "",
     var emisor: String = "",
@@ -22,10 +22,9 @@ data class FacturaEntity(
     var baseImponible: Double = 0.0,
     var iva: Double = 0.0,
     var total: Double = 0.0,
-
     var tipoFactura: String = "Emitida"
 ) {
-    // Constructor sin argumentos para Firebase (opcional pero recomendado)
+    // Constructor vacío requerido por Firebase
     constructor() : this(
         "",
         "", "", "",
@@ -33,10 +32,6 @@ data class FacturaEntity(
         0.0, 0.0, 0.0, "Emitida"
     )
 
-    /**
-     * toMap() convierte la factura en un Map<String, Any>
-     * para subirlo fácilmente a Firestore.
-     */
     @Exclude
     fun toMap(): Map<String, Any> {
         return mapOf(

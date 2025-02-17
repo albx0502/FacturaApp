@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.facturaapp.data.FacturaRepository
 
 /**
- * ViewModelFactory para inyectar FacturaRepository en FacturaViewModel.
+ * Factory para inyectar FacturaRepository en FacturaViewModel.
  */
 class FacturaViewModelFactory(private val repository: FacturaRepository) : ViewModelProvider.Factory {
 

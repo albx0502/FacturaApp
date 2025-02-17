@@ -18,7 +18,7 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
     private val _uiMessage = MutableStateFlow<String?>(null)
     val uiMessage: StateFlow<String?> get() = _uiMessage
 
-    // Observa el flujo de facturas recuperadas de Firestore
+    // Observa el flujo de todas las facturas en Firestore
     val facturas: StateFlow<List<FacturaEntity>> = repository.getAllFacturas()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -57,26 +57,24 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
     }
 
     /**
-     * Guarda o actualiza la factura.
-     * - Si factura.id está vacío => addFactura
-     * - Si factura.id no está vacío => updateFactura
+     * Guarda o actualiza la factura:
+     * - Si factura.id == "" => addFactura (nuevo documento)
+     * - Si factura.id != "" => updateFactura (documento existente)
      */
     fun saveFactura(factura: FacturaEntity) {
-        // Validaciones básicas
+        // Validaciones mínimas
         if (factura.emisor.isBlank() || factura.receptor.isBlank()) {
             setUiMessage("Los campos Emisor y Receptor son obligatorios.")
             return
         }
-        // Otras validaciones (NIF, IVA, etc.)
+        // Podrías validar NIF, etc.
 
         viewModelScope.launch {
             try {
                 if (factura.id.isEmpty()) {
-                    // Nueva factura => add
                     repository.addFactura(factura)
                     setUiMessage("Factura creada con éxito")
                 } else {
-                    // Factura existente => update
                     repository.updateFactura(factura)
                     setUiMessage("Factura actualizada con éxito")
                 }
