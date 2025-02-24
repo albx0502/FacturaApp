@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,10 +22,11 @@ import java.util.*
 @Composable
 fun FacturaListScreen(
     viewModel: FacturaViewModel,
+    authViewModel: AuthViewModel,
+    navController: androidx.navigation.NavController, // Agrega NavController como parámetro
     onFacturaClick: (FacturaEntity) -> Unit,
-    onNavigateToForm: () -> Unit
+    onNavigateToForm: () -> Unit,
 ) {
-    // Observamos la lista de facturas
     val facturas by viewModel.facturas.collectAsState()
 
     Scaffold(
@@ -32,64 +34,101 @@ fun FacturaListScreen(
             TopAppBar(
                 title = { Text("Listado de Facturas") },
                 actions = {
-                    IconButton(onClick = onNavigateToForm) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Agregar Factura"
-                        )
+                    IconButton(
+                        onClick = onNavigateToForm,
+                        modifier = Modifier.padding(end = 8.dp) // Espacio a la derecha
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Agregar Factura")
                     }
+                    IconButton(
+                        onClick = {
+                            authViewModel.signOut()
+
+                            // Asegura que Firebase ha cerrado sesión antes de navegar
+                            if (authViewModel.authState.value == null) {
+                                navController.navigate("login") {
+                                    popUpTo("list") { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.ExitToApp, contentDescription = "Cerrar Sesión")
+                    }
+
+
                 }
             )
-        },
-        content = { paddingValues ->
-            if (facturas.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No hay facturas disponibles.",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    items(facturas) { factura ->
-                        FacturaCard(factura = factura, onFacturaClick = onFacturaClick)
-                    }
-                }
-            }
         }
-    )
+    ) { paddingValues ->
+        if (facturas.isEmpty()) {
+            EmptyStateMessage(paddingValues)
+        } else {
+            FacturaListContent(facturas, onFacturaClick, paddingValues)
+        }
+    }
 }
 
+
+/**
+ * Muestra un mensaje cuando no hay facturas disponibles.
+ */
+@Composable
+fun EmptyStateMessage(paddingValues: PaddingValues) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = "No hay facturas disponibles.", style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/**
+ * Muestra la lista de facturas usando LazyColumn.
+ */
+@Composable
+fun FacturaListContent(
+    facturas: List<FacturaEntity>,
+    onFacturaClick: (FacturaEntity) -> Unit,
+    paddingValues: PaddingValues
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        items(facturas) { factura ->
+            FacturaCard(factura, onFacturaClick)
+        }
+    }
+}
+
+/**
+ * Tarjeta que representa una factura en la lista.
+ */
 @Composable
 fun FacturaCard(
     factura: FacturaEntity,
     onFacturaClick: (FacturaEntity) -> Unit
 ) {
-    // Para formatear el total
     val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
         minimumFractionDigits = 2
         maximumFractionDigits = 2
     }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onFacturaClick(factura) }
-            .padding(vertical = 4.dp),
+            .padding(4.dp), // Espaciado uniforme
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Mostramos "Factura N.º: <numeroFactura>"
             Text(
                 text = "Factura N.º: ${factura.numeroFactura}",
                 style = MaterialTheme.typography.titleMedium

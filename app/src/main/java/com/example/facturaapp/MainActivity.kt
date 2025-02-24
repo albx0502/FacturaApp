@@ -13,31 +13,21 @@ import com.example.facturaapp.ui.FacturaViewModel
 import com.example.facturaapp.ui.FacturaViewModelFactory
 import com.example.facturaapp.ui.theme.FacturaAppTheme
 
-/**
- * MainActivity: punto de entrada.
- * - Crea los Repositorios (Auth y Factura).
- * - Crea sus ViewModels usando las Factories.
- * - Llama a AppNavigation con ambos ViewModels.
- */
 class MainActivity : ComponentActivity() {
+
+    // Inicializamos los repositorios con `lazy` para evitar que se creen si no se usan
+    private val facturaRepository by lazy { FacturaRepository() }
+    private val authRepository by lazy { AuthRepository() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Repositorios para Facturas y Auth
-        val facturaRepository = FacturaRepository()
-        val authRepository = AuthRepository()
-
-        // Factories
-        val facturaFactory = FacturaViewModelFactory(facturaRepository)
-        val authFactory = AuthViewModelFactory(authRepository)
-
         setContent {
             FacturaAppTheme {
-                // Obtenemos ambos ViewModels
-                val facturaViewModel: FacturaViewModel = viewModel(factory = facturaFactory)
-                val authViewModel: AuthViewModel = viewModel(factory = authFactory)
+                // ✅ Se usa directamente `viewModel(factory = ...)` SIN `remember {}` y SIN `try-catch`
+                val facturaViewModel: FacturaViewModel = viewModel(factory = FacturaViewModelFactory(facturaRepository))
+                val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository))
 
-                // Navegación principal, pasando los 2 ViewModels
                 AppNavigation(
                     facturaViewModel = facturaViewModel,
                     authViewModel = authViewModel

@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("kotlin-kapt") // Habilitar kapt
+    id("kotlin-kapt")
     id("com.google.gms.google-services")
 }
 
@@ -42,7 +42,7 @@ android {
 
     buildFeatures {
         compose = true
-        dataBinding = false // Desactiva Data Binding si no lo necesitas
+        dataBinding = false
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -58,12 +58,16 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
+    implementation(platform("com.google.firebase:firebase-bom:32.2.3"))  // ✅ Versión reciente de Firebase BOM
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.firebase.auth.ktx)
+
+    // Firebase Auth y Firestore (sin versiones fijas)
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-database-ktx")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -73,17 +77,12 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-
     // Compose
     implementation(libs.material3)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.activity.compose.v170)
 
-    implementation(platform(libs.firebase.bom))
-
+    // GMS Basement
     implementation("com.google.android.gms:play-services-basement:18.2.0")
-
-    implementation(libs.firebase.database.ktx)
-    implementation("com.google.firebase:firebase-firestore-ktx:24.6.0") // Versión compatible con Kotlin 1.9
 }

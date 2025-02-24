@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 /**
  * Pantalla de registro de usuario con Email/Password.
@@ -22,6 +23,8 @@ fun RegisterScreen(
 ) {
     val authState by authViewModel.authState.collectAsState()
     val errorMessage by authViewModel.errorMessage.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // Si se registró con éxito (authState != null), navegamos
     LaunchedEffect(authState) {
@@ -32,10 +35,14 @@ fun RegisterScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) } // Para deshabilitar el botón mientras se envía
 
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Registro") })
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
         },
         content = { paddingValues ->
             Column(
@@ -60,18 +67,26 @@ fun RegisterScreen(
                 )
 
                 if (errorMessage != null) {
-                    Text(
-                        text = errorMessage ?: "",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    // Muestra el error en un Snackbar en lugar de un texto simple
+                    LaunchedEffect(errorMessage) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar(errorMessage ?: "")
+                            authViewModel.clearError() // Limpia el error después de mostrarlo
+                        }
+                    }
                 }
 
                 Button(
                     onClick = {
-                        authViewModel.signUp(email, password)
+                        if (email.isBlank() || password.isBlank()) {
+                            scope.launch { snackbarHostState.showSnackbar("Todos los campos son obligatorios") }
+                        } else {
+                            isSubmitting = true
+                            authViewModel.signUp(email, password)
+                        }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSubmitting // Deshabilita el botón mientras se está enviando
                 ) {
                     Text("Crear Cuenta")
                 }

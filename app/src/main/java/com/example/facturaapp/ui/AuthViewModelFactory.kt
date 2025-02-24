@@ -5,15 +5,11 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.facturaapp.data.AuthRepository
 
 /**
- * AuthViewModelFactory permite inyectar AuthRepository
- * en el AuthViewModel.
+ * Factory para crear una instancia de AuthViewModel con AuthRepository inyectado.
  */
 class AuthViewModelFactory(private val repository: AuthRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return AuthViewModel(repository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
+        return modelClass.getConstructor(AuthRepository::class.java)
+            .newInstance(repository)
     }
 }

@@ -30,7 +30,7 @@ fun FacturaScreen(
     viewModel: FacturaViewModel,
     onNavigateToList: () -> Unit
 ) {
-    // Estados para campos
+    // Estados para los campos del formulario
     var numeroFactura by remember { mutableStateOf("") }
     var fechaEmision by remember { mutableStateOf("") }
     var emisorEmpresa by remember { mutableStateOf("") }
@@ -43,14 +43,12 @@ fun FacturaScreen(
     var ivaPorcentaje by remember { mutableStateOf("0") }
     var tipoFactura by remember { mutableStateOf("Emitida") }
 
-    // SnackBar para mensajes
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Observamos la factura en edición
     val facturaToEdit by viewModel.facturaToEdit.collectAsState()
 
-    // Cuando entra en modo edición, rellenamos campos
+    // Llenar campos cuando se edita una factura
     LaunchedEffect(facturaToEdit) {
         facturaToEdit?.let { factura ->
             numeroFactura = factura.numeroFactura
@@ -62,17 +60,11 @@ fun FacturaScreen(
             receptorNIF = factura.receptorNIF
             receptorDireccion = factura.receptorDireccion
             baseImponible = factura.baseImponible.toString()
-
-            val base = factura.baseImponible
-            val ivaVal = factura.iva
-            val porcentaje = if (base != 0.0) ((ivaVal / base) * 100).toInt() else 0
-            ivaPorcentaje = porcentaje.toString()
-
+            ivaPorcentaje = ((factura.iva / factura.baseImponible) * 100).toInt().toString()
             tipoFactura = factura.tipoFactura
         }
     }
 
-    // Observamos mensajes de ViewModel
     val uiMessage by viewModel.uiMessage.collectAsState()
     LaunchedEffect(uiMessage) {
         uiMessage?.let {
@@ -83,21 +75,11 @@ fun FacturaScreen(
         }
     }
 
-    // Cálculo dinámico de IVA y total
-    val ivaCalculado by remember(baseImponible, ivaPorcentaje) {
-        derivedStateOf {
-            val baseDouble = baseImponible.toDoubleOrNull() ?: 0.0
-            val ivaDouble = ivaPorcentaje.toDoubleOrNull() ?: 0.0
-            (baseDouble * ivaDouble) / 100
-        }
-    }
-    val total by remember(baseImponible, ivaCalculado) {
-        derivedStateOf {
-            (baseImponible.toDoubleOrNull() ?: 0.0) + ivaCalculado
-        }
-    }
+    val baseDouble = baseImponible.toDoubleOrNull() ?: 0.0
+    val ivaDouble = ivaPorcentaje.toDoubleOrNull() ?: 0.0
+    val ivaCalculado = (baseDouble * ivaDouble) / 100
+    val total = baseDouble + ivaCalculado
 
-    // Formateamos el total con coma
     val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
         minimumFractionDigits = 2
         maximumFractionDigits = 2
@@ -117,8 +99,7 @@ fun FacturaScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                // Construimos FacturaEntity según si es edición o creación
-                val newOrEditedFactura = facturaToEdit?.copy(
+                val factura = facturaToEdit?.copy(
                     numeroFactura = numeroFactura,
                     fechaEmision = fechaEmision,
                     emisor = emisorEmpresa,
@@ -127,12 +108,12 @@ fun FacturaScreen(
                     receptor = receptorCliente,
                     receptorNIF = receptorNIF,
                     receptorDireccion = receptorDireccion,
-                    baseImponible = baseImponible.toDoubleOrNull() ?: 0.0,
+                    baseImponible = baseDouble,
                     iva = ivaCalculado,
                     total = total,
                     tipoFactura = tipoFactura
                 ) ?: FacturaEntity(
-                    id = "", // El ID se generará en Firestore
+                    id = "",
                     numeroFactura = if (numeroFactura.isBlank()) UUID.randomUUID().toString() else numeroFactura,
                     fechaEmision = fechaEmision,
                     emisor = emisorEmpresa,
@@ -141,20 +122,17 @@ fun FacturaScreen(
                     receptor = receptorCliente,
                     receptorNIF = receptorNIF,
                     receptorDireccion = receptorDireccion,
-                    baseImponible = baseImponible.toDoubleOrNull() ?: 0.0,
+                    baseImponible = baseDouble,
                     iva = ivaCalculado,
                     total = total,
                     tipoFactura = tipoFactura
                 )
 
-                // Guardamos la factura
-                viewModel.saveFactura(newOrEditedFactura)
+                viewModel.saveFactura(factura)
 
-                // Salir del modo edición o limpiar campos
                 if (facturaToEdit != null) {
                     viewModel.editFactura(null)
                 } else {
-                    // Limpiar
                     numeroFactura = ""
                     fechaEmision = ""
                     emisorEmpresa = ""
@@ -170,71 +148,39 @@ fun FacturaScreen(
             }) {
                 Icon(imageVector = Icons.Default.Check, contentDescription = "Guardar Factura")
             }
-        },
-        content = { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item { SectionHeader(title = "Información del Emisor") }
-                    item { FieldCard(label = "Emisor - Empresa", value = emisorEmpresa) { emisorEmpresa = it } }
-                    item { FieldCard(label = "Emisor - NIF", value = emisorNIF) { emisorNIF = it } }
-                    item { FieldCard(label = "Emisor - Dirección", value = emisorDireccion) { emisorDireccion = it } }
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item { SectionHeader("Información del Emisor") }
+            item { FieldCard("Emisor - Empresa", emisorEmpresa) { emisorEmpresa = it } }
+            item { FieldCard("Emisor - NIF", emisorNIF) { emisorNIF = it } }
+            item { FieldCard("Emisor - Dirección", emisorDireccion) { emisorDireccion = it } }
 
-                    item { SectionHeader(title = "Información del Receptor") }
-                    item { FieldCard(label = "Receptor - Cliente", value = receptorCliente) { receptorCliente = it } }
-                    item { FieldCard(label = "Receptor - NIF", value = receptorNIF) { receptorNIF = it } }
-                    item { FieldCard(label = "Receptor - Dirección", value = receptorDireccion) { receptorDireccion = it } }
+            item { SectionHeader("Información del Receptor") }
+            item { FieldCard("Receptor - Cliente", receptorCliente) { receptorCliente = it } }
+            item { FieldCard("Receptor - NIF", receptorNIF) { receptorNIF = it } }
+            item { FieldCard("Receptor - Dirección", receptorDireccion) { receptorDireccion = it } }
 
-                    item { SectionHeader(title = "Detalles de la Factura") }
-                    item {
-                        DatePickerField(label = "Fecha de Emisión", value = fechaEmision) {
-                            fechaEmision = it
-                        }
-                    }
-                    item {
-                        FieldCard(
-                            label = "Base Imponible (€)",
-                            value = baseImponible,
-                            keyboardType = KeyboardType.Number
-                        ) { baseImponible = it }
-                    }
-                    item {
-                        IvaDropdownField(
-                            selectedIva = ivaPorcentaje,
-                            onIvaSelected = { newIva -> ivaPorcentaje = newIva }
-                        )
-                    }
-                    item {
-                        TipoFacturaDropdownField(
-                            selectedTipo = tipoFactura,
-                            onTipoSelected = { tipoFactura = it }
-                        )
-                    }
-                    item {
-                        Text(
-                            text = "Total (€): $totalFormateado",
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                }
-
-                // Snackbar
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier.align(Alignment.BottomCenter)
+            item { SectionHeader("Detalles de la Factura") }
+            item { DatePickerField("Fecha de Emisión", fechaEmision) { fechaEmision = it } }
+            item { FieldCard("Base Imponible (€)", baseImponible, KeyboardType.Number) { baseImponible = it } }
+            item { IvaDropdownField(ivaPorcentaje) { ivaPorcentaje = it } }
+            item { TipoFacturaDropdownField(tipoFactura) { tipoFactura = it } }
+            item {
+                Text(
+                    text = "Total (€): $totalFormateado",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
         }
-    )
+    }
 }
 
 @Composable
