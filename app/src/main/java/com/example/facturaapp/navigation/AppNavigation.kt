@@ -23,7 +23,7 @@ fun AppNavigation(
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
             navController.navigate("list") {
-                popUpTo(0) // Elimina el historial de navegación previo para evitar retrocesos inesperados
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
             }
         }
     }
@@ -60,9 +60,9 @@ fun AppNavigation(
         // Pantalla de Listado de Facturas
         composable(route = "list") {
             FacturaListScreen(
-                viewModel = facturaViewModel,  // 🔹 Corregido: Se pasa correctamente como "viewModel"
+                viewModel = facturaViewModel,
                 authViewModel = authViewModel,
-                navController = navController, // 🔹 Corregido: Se pasa el navController necesario
+                navController = navController,
                 onFacturaClick = { factura ->
                     navController.navigate("facturaDetail/${factura.id}")
                 },
@@ -71,5 +71,32 @@ fun AppNavigation(
                 }
             )
         }
+
+        // 🔹 Pantalla de Detalle de Factura
+        composable(
+            route = "facturaDetail/{facturaId}",
+            arguments = listOf(navArgument("facturaId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val facturaId = backStackEntry.arguments?.getString("facturaId") ?: ""
+            FacturaDetailScreen(
+                facturaId = facturaId,
+                viewModel = facturaViewModel,
+                navController = navController
+            )
+        }
+
+        // 🔹 Pantalla de Creación/Edición de Factura
+        composable(route = "facturaForm") {
+            FacturaScreen(
+                viewModel = facturaViewModel,
+                onNavigateToList = {
+                    navController.navigate("list") {
+                        popUpTo("facturaForm") { inclusive = true }
+                    }
+                }
+            )
+        }
+
     }
+
 }

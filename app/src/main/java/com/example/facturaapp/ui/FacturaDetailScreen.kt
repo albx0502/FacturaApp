@@ -18,39 +18,65 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FacturaDetailScreen(
-    facturaId: String, // Recibe solo el ID
+    facturaId: String,
     viewModel: FacturaViewModel,
     navController: NavController
 ) {
     val factura by viewModel.getFacturaById(facturaId).collectAsState(initial = null)
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    if (factura == null) {
-        CircularProgressIndicator()
-    } else {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Detalles de la Factura") },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver")
-                        }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Detalles de la Factura") },
+                navigationIcon = {
+                    IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() }) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
-                )
+                }
+            )
+        }
+    ) { paddingValues ->
+        if (factura == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-        ) { paddingValues ->
-            LazyColumn(
-                modifier = Modifier.padding(paddingValues).fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(getFacturaDetails(factura!!)) { detail ->
-                    DetailItem(label = detail.first, value = detail.second)
+        } else {
+            factura?.let {
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(getFacturaDetails(it)) { detail ->
+                        DetailItem(label = detail.first, value = detail.second)
+                    }
+                    item {
+                        ActionButtons(
+                            factura = it,
+                            onBackClick = { navController.popBackStack() },
+                            onEditClick = { viewModel.editFactura(it); navController.navigate("facturaForm") },
+                            onDeleteClick = { showDeleteDialog = true }
+                        )
+                    }
+                }
+
+                if (showDeleteDialog) {
+                    ConfirmDeleteDialog(
+                        onConfirm = {
+                            viewModel.deleteFactura(it)
+                            showDeleteDialog = false
+                            navController.popBackStack()
+                        },
+                        onDismiss = { showDeleteDialog = false }
+                    )
                 }
             }
         }
     }
 }
-
 
 /**
  * Crea una lista de pares (label, value) con la información de la factura.
@@ -113,7 +139,7 @@ fun ActionButtons(
             onClick = onDeleteClick,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError // Mejor contraste
+                contentColor = MaterialTheme.colorScheme.onError
             )
         ) {
             Text("Eliminar")

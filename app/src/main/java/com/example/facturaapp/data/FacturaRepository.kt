@@ -3,9 +3,11 @@ package com.example.facturaapp.data
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.tasks.await
 
 class FacturaRepository {
@@ -36,8 +38,9 @@ class FacturaRepository {
             trySend(facturas).isSuccess
         }
 
-        awaitClose { listener.remove() } // Detener el listener cuando no se use más
-    }
+        awaitClose { listener.remove() }
+    }.flowOn(Dispatchers.IO) // 🔹 Ahora se ejecuta en segundo plano
+
     fun getFacturaById(facturaId: String): Flow<FacturaEntity?> = callbackFlow {
         val user = auth.currentUser ?: run {
             close(Exception("Usuario no autenticado"))

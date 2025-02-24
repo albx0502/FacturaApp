@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -23,53 +24,51 @@ import java.util.*
 fun FacturaListScreen(
     viewModel: FacturaViewModel,
     authViewModel: AuthViewModel,
-    navController: androidx.navigation.NavController, // Agrega NavController como parámetro
+    navController: androidx.navigation.NavController,
     onFacturaClick: (FacturaEntity) -> Unit,
     onNavigateToForm: () -> Unit,
 ) {
-    val facturas by viewModel.facturas.collectAsState()
+    val facturas by remember { viewModel.facturas }.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Listado de Facturas") },
                 actions = {
-                    IconButton(
-                        onClick = onNavigateToForm,
-                        modifier = Modifier.padding(end = 8.dp) // Espacio a la derecha
-                    ) {
+                    IconButton(onClick = onNavigateToForm) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = "Agregar Factura")
                     }
                     IconButton(
                         onClick = {
                             authViewModel.signOut()
-
-                            // Asegura que Firebase ha cerrado sesión antes de navegar
-                            if (authViewModel.authState.value == null) {
-                                navController.navigate("login") {
-                                    popUpTo("list") { inclusive = true }
-                                    launchSingleTop = true
-                                }
+                            navController.navigate("login") {
+                                popUpTo("list") { inclusive = true }
+                                launchSingleTop = true
                             }
-                        },
-                        modifier = Modifier.padding(end = 8.dp)
+                        }
                     ) {
                         Icon(imageVector = Icons.Default.ExitToApp, contentDescription = "Cerrar Sesión")
                     }
-
-
                 }
             )
         }
     ) { paddingValues ->
-        if (facturas.isEmpty()) {
-            EmptyStateMessage(paddingValues)
-        } else {
-            FacturaListContent(facturas, onFacturaClick, paddingValues)
+        Column(modifier = Modifier.padding(paddingValues)) {
+            if (facturas.isEmpty()) {
+                EmptyStateMessage(paddingValues) // 🔹 Usamos la función reutilizable
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    items(facturas) { factura ->
+                        FacturaCard(factura, onFacturaClick)
+                    }
+                }
+            }
         }
     }
 }
-
 
 /**
  * Muestra un mensaje cuando no hay facturas disponibles.
@@ -83,28 +82,6 @@ fun EmptyStateMessage(paddingValues: PaddingValues) {
         contentAlignment = Alignment.Center
     ) {
         Text(text = "No hay facturas disponibles.", style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-/**
- * Muestra la lista de facturas usando LazyColumn.
- */
-@Composable
-fun FacturaListContent(
-    facturas: List<FacturaEntity>,
-    onFacturaClick: (FacturaEntity) -> Unit,
-    paddingValues: PaddingValues
-) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(16.dp)
-    ) {
-        items(facturas) { factura ->
-            FacturaCard(factura, onFacturaClick)
-        }
     }
 }
 

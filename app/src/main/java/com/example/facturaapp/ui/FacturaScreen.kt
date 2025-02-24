@@ -46,7 +46,7 @@ fun FacturaScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    val facturaToEdit by viewModel.facturaToEdit.collectAsState()
+    val facturaToEdit by remember { viewModel.facturaToEdit }.collectAsState()
 
     // Llenar campos cuando se edita una factura
     LaunchedEffect(facturaToEdit) {

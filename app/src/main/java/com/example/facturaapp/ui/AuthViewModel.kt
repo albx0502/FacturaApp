@@ -44,12 +44,12 @@ class AuthViewModel(
      * Registro con email y password.
      */
     fun signUp(email: String, password: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.signUpWithEmail(email, password)
-                _authState.value = repository.getCurrentUser()
+                withContext(Dispatchers.Main) { _authState.value = repository.getCurrentUser() }
             } catch (e: Exception) {
-                _errorMessage.value = traducirErrorFirebase(e.message)
+                withContext(Dispatchers.Main) { _errorMessage.value = traducirErrorFirebase(e.message) }
             }
         }
     }
@@ -58,16 +58,12 @@ class AuthViewModel(
      * Inicio de sesión con email y password.
      */
     fun signIn(email: String, password: String) {
-        viewModelScope.launch(Dispatchers.IO) {  // Ejecutar en hilo de fondo
+        viewModelScope.launch(Dispatchers.IO) {  // Ejecutar en segundo plano
             try {
                 repository.signInWithEmail(email, password)
-                withContext(Dispatchers.Main) {
-                    _authState.value = repository.getCurrentUser()
-                }
+                withContext(Dispatchers.Main) { _authState.value = repository.getCurrentUser() }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    _errorMessage.value = traducirErrorFirebase(e.message)
-                }
+                withContext(Dispatchers.Main) { _errorMessage.value = traducirErrorFirebase(e.message) }
             }
         }
     }

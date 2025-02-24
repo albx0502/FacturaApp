@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.facturaapp.data.FacturaEntity
 import com.example.facturaapp.data.FacturaRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() {
 
@@ -35,12 +37,12 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
     }
 
     fun deleteFactura(factura: FacturaEntity) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.deleteFactura(factura.id)
-                setUiMessage("Factura eliminada con éxito")
+                withContext(Dispatchers.Main) { setUiMessage("Factura eliminada con éxito") }
             } catch (e: Exception) {
-                setUiMessage("Error al eliminar la factura: ${e.message}")
+                withContext(Dispatchers.Main) { setUiMessage("Error al eliminar la factura: ${e.message}") }
             }
         }
     }
@@ -51,17 +53,17 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
             return
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (factura.id.isEmpty()) {
                     repository.addFactura(factura)
-                    setUiMessage("Factura creada con éxito")
+                    withContext(Dispatchers.Main) { setUiMessage("Factura creada con éxito") }
                 } else {
                     repository.updateFactura(factura)
-                    setUiMessage("Factura actualizada con éxito")
+                    withContext(Dispatchers.Main) { setUiMessage("Factura actualizada con éxito") }
                 }
             } catch (e: Exception) {
-                setUiMessage("Error al guardar la factura: ${e.message}")
+                withContext(Dispatchers.Main) { setUiMessage("Error al guardar la factura: ${e.message}") }
             }
         }
     }

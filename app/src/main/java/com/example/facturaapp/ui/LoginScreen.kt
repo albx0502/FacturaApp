@@ -74,16 +74,19 @@ fun LoginScreen(
                 onClick = {
                     if (email.isBlank() || password.isBlank()) {
                         authViewModel.setErrorMessage("Todos los campos son obligatorios")
+                    } else if (password.length < 6) {
+                        authViewModel.setErrorMessage("La contraseña debe tener al menos 6 caracteres.")
                     } else {
                         isSubmitting = true
                         authViewModel.signIn(email, password)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isSubmitting // Evita clics múltiples
+                enabled = !isSubmitting
             ) {
                 Text("Iniciar Sesión")
             }
+
 
             OutlinedButton(
                 onClick = { onNavigateToRegister() },
