@@ -17,13 +17,14 @@ fun AppNavigation(
 
     // Manejo de redirección basado en el estado de autenticación
     LaunchedEffect(currentUser) {
-        if (currentUser != null && navController.currentDestination?.route != "list") {
+        val currentRoute = navController.currentDestination?.route
+        if (currentUser != null && currentRoute != "list") {
             navController.navigate("list") {
-                popUpTo("login") { inclusive = true } // Limpiamos el historial de login
+                popUpTo("login") { inclusive = true } // Limpiamos historial de login
             }
-        } else if (currentUser == null && navController.currentDestination?.route != "login") {
+        } else if (currentUser == null && currentRoute != "login") {
             navController.navigate("login") {
-                popUpTo("list") { inclusive = true } // Evita que el usuario vuelva a la lista si cerró sesión
+                popUpTo("list") { inclusive = true } // Evita que el usuario vuelva si cerró sesión
             }
         }
     }
@@ -56,7 +57,7 @@ fun AppNavigation(
                 onFacturaClick = { factura ->
                     navController.navigate("facturaDetail/${factura.id}")
                 },
-                onNavigateToForm = { navController.navigate("facturaForm") }
+                onNavigateToForm = { navController.navigate("facturaForm") } // <-- Agregamos la versión sin parámetros
             )
         }
 
@@ -73,12 +74,13 @@ fun AppNavigation(
             )
         }
 
-        // Pantalla de Creación/Edición de Factura
+        // Pantalla de Creación/Edición de Factura (con facturaId opcional)
         composable(
-            "facturaForm/{facturaId}",
+            "facturaForm/{facturaId}?",
             arguments = listOf(navArgument("facturaId") {
                 type = NavType.StringType
                 nullable = true
+                defaultValue = null
             })
         ) { backStackEntry ->
             val facturaId = backStackEntry.arguments?.getString("facturaId")
