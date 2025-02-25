@@ -13,13 +13,17 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
     private val _uiMessage = MutableStateFlow<String?>(null)
     val uiMessage: StateFlow<String?> = _uiMessage.asStateFlow()
 
-    val facturas: StateFlow<List<FacturaEntity>> = repository.getAllFacturas()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private var _facturas = MutableStateFlow<List<FacturaEntity>>(emptyList())
+    val facturas: StateFlow<List<FacturaEntity>> = _facturas.asStateFlow()
 
     private val _facturaToEdit = MutableStateFlow<FacturaEntity?>(null)
     val facturaToEdit: StateFlow<FacturaEntity?> = _facturaToEdit.asStateFlow()
 
-    private fun setUiMessage(message: String) {
+    init {
+        fetchFacturas()
+    }
+
+    fun setUiMessage(message: String) {
         _uiMessage.value = message
     }
 
@@ -27,10 +31,24 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
         _uiMessage.value = null
     }
 
+    fun fetchFacturas() {
+        viewModelScope.launch {
+            repository.getAllFacturas()
+                .collect { facturas ->
+                    _facturas.value = facturas
+                }
+        }
+    }
+
     fun getFacturaById(facturaId: String): StateFlow<FacturaEntity?> {
+        if (facturaId.isBlank()) {
+            return flowOf(null).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        }
         return repository.getFacturaById(facturaId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }
+
+
 
     fun editFactura(factura: FacturaEntity?) {
         _facturaToEdit.value = factura
@@ -68,5 +86,9 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
                 setUiMessage("Error al guardar la factura: ${e.message}")
             }
         }
+    }
+
+    fun clearFacturasOnLogout() { // 🚀 Evita que Firestore siga ejecutando consultas tras logout
+        _facturas.value = emptyList()
     }
 }

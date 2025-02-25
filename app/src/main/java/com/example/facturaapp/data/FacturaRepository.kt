@@ -2,6 +2,7 @@ package com.example.facturaapp.data
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -14,6 +15,9 @@ import kotlinx.coroutines.withContext
 class FacturaRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+
+    // 🔹 Lista de listeners activos para Firestore
+    private val listeners = mutableListOf<ListenerRegistration>()
 
     fun getAllFacturas(): Flow<List<FacturaEntity>> = callbackFlow {
         val user = auth.currentUser
@@ -39,11 +43,10 @@ class FacturaRepository {
             trySend(facturas).isSuccess
         }
 
+        // 🔹 Guardar referencia del listener
+        listeners.add(listener)
         awaitClose { listener.remove() }
     }.flowOn(Dispatchers.IO)
-
-
-
 
     fun getFacturaById(facturaId: String): Flow<FacturaEntity?> = callbackFlow {
         if (facturaId.isBlank()) {
@@ -71,7 +74,9 @@ class FacturaRepository {
             trySend(factura).isSuccess
         }
 
-        awaitClose { listener.remove() } // Se detiene cuando ya no se usa
+        // 🔹 Guardar referencia del listener
+        listeners.add(listener)
+        awaitClose { listener.remove() }
     }.flowOn(Dispatchers.IO)
 
     suspend fun addFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
@@ -123,5 +128,11 @@ class FacturaRepository {
         } catch (e: Exception) {
             throw Exception("Error al eliminar la factura: ${e.message}")
         }
+    }
+
+    // ✅ NUEVO: Cancelar todas las consultas activas
+    fun cancelAllFirestoreListeners() {
+        listeners.forEach { it.remove() }
+        listeners.clear()
     }
 }

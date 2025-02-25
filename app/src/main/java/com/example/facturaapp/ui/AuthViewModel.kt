@@ -3,13 +3,15 @@ package com.example.facturaapp.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.facturaapp.data.AuthRepository
+import com.example.facturaapp.data.FacturaRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val facturaRepository: FacturaRepository // 🔹 Se inyecta el repositorio correcto
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<FirebaseUser?>(repository.getCurrentUser())
@@ -57,10 +59,12 @@ class AuthViewModel(
     }
 
     fun signOut() {
-        repository.signOut()
-        _authState.value = null
+        viewModelScope.launch {
+            facturaRepository.cancelAllFirestoreListeners() // 🔹 Ahora usa la instancia real
+            repository.signOut()
+            _authState.value = null
+        }
     }
-
 
     private fun traducirErrorFirebase(error: String?): String {
         return when {

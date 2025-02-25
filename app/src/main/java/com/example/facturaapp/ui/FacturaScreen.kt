@@ -22,10 +22,6 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Pantalla de creación/edición de Facturas.
- */
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FacturaScreen(
@@ -36,7 +32,15 @@ fun FacturaScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Estados guardados incluso si la pantalla se recomponen o rota el dispositivo.
+    // Evitar pasar ID vacío
+    val safeFacturaId = facturaId?.takeIf { it.isNotBlank() }
+
+    // Estado de la factura a editar (si existe)
+    val facturaToEdit by viewModel.getFacturaById(safeFacturaId ?: "").collectAsState(initial = null)
+
+    val uiMessage by viewModel.uiMessage.collectAsState()
+
+    // Estados de los campos
     var numeroFactura by rememberSaveable { mutableStateOf("") }
     var fechaEmision by rememberSaveable { mutableStateOf("") }
     var emisorEmpresa by rememberSaveable { mutableStateOf("") }
@@ -49,10 +53,7 @@ fun FacturaScreen(
     var ivaPorcentaje by rememberSaveable { mutableStateOf("0") }
     var tipoFactura by rememberSaveable { mutableStateOf("Emitida") }
 
-    val facturaToEdit by viewModel.getFacturaById(facturaId ?: "").collectAsState(initial = null)
-    val uiMessage by viewModel.uiMessage.collectAsState()
-
-    // Actualizar campos si se está editando una factura
+    // Actualizar los campos solo si `facturaToEdit` no es null
     LaunchedEffect(facturaToEdit) {
         facturaToEdit?.let { factura ->
             numeroFactura = factura.numeroFactura
@@ -73,7 +74,7 @@ fun FacturaScreen(
     LaunchedEffect(uiMessage) {
         uiMessage?.let {
             scope.launch {
-                snackbarHostState.showSnackbar(it)
+                snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
                 viewModel.clearMessage()
             }
         }
@@ -92,7 +93,7 @@ fun FacturaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (facturaId != null) "Editar Factura" else "Crear Factura") },
+                title = { Text(if (safeFacturaId != null) "Editar Factura" else "Crear Factura") },
                 actions = {
                     IconButton(onClick = onNavigateToList) {
                         Icon(imageVector = Icons.Default.List, contentDescription = "Ver Lista")
@@ -154,6 +155,11 @@ fun handleSaveFactura(
     receptor: String, receptorNIF: String, receptorDireccion: String, baseImponible: Double,
     iva: Double, total: Double, tipoFactura: String, facturaToEdit: FacturaEntity?, viewModel: FacturaViewModel
 ) {
+    if (numeroFactura.isBlank() || emisor.isBlank() || receptor.isBlank()) {
+        viewModel.setUiMessage("Los campos Número de Factura, Emisor y Receptor son obligatorios.")
+        return
+    }
+
     val factura = facturaToEdit?.copy(
         numeroFactura = numeroFactura,
         fechaEmision = fechaEmision,

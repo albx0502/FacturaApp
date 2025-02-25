@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.facturaapp.data.FacturaEntity
+import kotlinx.coroutines.flow.emptyFlow
 import java.text.NumberFormat
 import java.util.*
 
@@ -27,6 +28,7 @@ fun FacturaListScreen(
     onFacturaClick: (FacturaEntity) -> Unit,
     onNavigateToForm: () -> Unit,
 ) {
+    // 🔹 Corregido: Se obtiene directamente el estado sin `remember {}`.
     val facturas by viewModel.facturas.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -40,6 +42,7 @@ fun FacturaListScreen(
                     IconButton(
                         onClick = {
                             authViewModel.signOut()
+                            viewModel.clearFacturasOnLogout() // 🚀 Limpiar facturas para evitar error en Firestore
                             navController.navigate("login") {
                                 popUpTo("list") { inclusive = true }
                                 launchSingleTop = true
@@ -54,7 +57,7 @@ fun FacturaListScreen(
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             if (facturas.isEmpty()) {
-                EmptyStateMessage(paddingValues)
+                EmptyStateMessage()
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -70,11 +73,9 @@ fun FacturaListScreen(
 }
 
 @Composable
-fun EmptyStateMessage(paddingValues: PaddingValues) {
+fun EmptyStateMessage() {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Text(text = "No hay facturas disponibles.", style = MaterialTheme.typography.bodyLarge)
@@ -86,8 +87,8 @@ fun FacturaCard(
     factura: FacturaEntity,
     onFacturaClick: (FacturaEntity) -> Unit
 ) {
-    val decimalFormat = remember { NumberFormat.getNumberInstance(Locale("es", "ES")) } // 🚀 Optimización
-    val totalFormatted = remember { decimalFormat.format(factura.total) }
+    val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")) // 🚀 Optimización
+    val totalFormatted = decimalFormat.format(factura.total)
 
     Card(
         modifier = Modifier
@@ -109,11 +110,15 @@ fun FacturaCard(
                 text = "Receptor: ${factura.receptor}",
                 style = MaterialTheme.typography.bodyMedium
             )
+            // 🔹 Se corrigió: `align(Alignment.End)` ahora dentro de `Modifier`
             Text(
                 text = "Total: $totalFormatted €",
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.End) // ✅ Ahora funciona correctamente
             )
         }
     }
 }
+

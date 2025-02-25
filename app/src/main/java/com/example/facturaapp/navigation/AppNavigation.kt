@@ -75,12 +75,19 @@ fun AppNavigation(
         }
 
         // Pantalla de Creación/Edición de Factura (con facturaId opcional)
+        composable("facturaForm") { // 🚀 Agregar versión sin parámetros
+            FacturaScreen(
+                viewModel = facturaViewModel,
+                facturaId = null,
+                onNavigateToList = { navController.navigate("list") }
+            )
+        }
+
         composable(
-            "facturaForm/{facturaId}?",
+            "facturaForm/{facturaId}",
             arguments = listOf(navArgument("facturaId") {
                 type = NavType.StringType
                 nullable = true
-                defaultValue = null
             })
         ) { backStackEntry ->
             val facturaId = backStackEntry.arguments?.getString("facturaId")
