@@ -75,13 +75,16 @@ fun AppNavigation(
 
         // Pantalla de Creación/Edición de Factura
         composable(
-            route = "facturaForm?facturaId={facturaId}",
-            arguments = listOf(navArgument("facturaId") { type = NavType.StringType; defaultValue = "" })
+            "facturaForm/{facturaId}",
+            arguments = listOf(navArgument("facturaId") {
+                type = NavType.StringType
+                nullable = true
+            })
         ) { backStackEntry ->
-            val facturaId = backStackEntry.arguments?.getString("facturaId").takeIf { it?.isNotBlank() == true }
+            val facturaId = backStackEntry.arguments?.getString("facturaId")
             FacturaScreen(
                 viewModel = facturaViewModel,
-                 facturaid = facturaId, // Pasamos el ID si existe, para editar la factura
+                facturaId = facturaId,
                 onNavigateToList = { navController.navigate("list") }
             )
         }

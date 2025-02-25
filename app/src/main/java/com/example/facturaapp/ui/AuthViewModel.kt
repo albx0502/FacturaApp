@@ -57,9 +57,10 @@ class AuthViewModel(
     }
 
     fun signOut() {
-        repository.signOut() // ✅ Ahora se ejecuta directamente, sin `viewModelScope.launch`
-        _authState.value = null // Se actualiza manualmente para reflejar el estado
+        repository.signOut()
+        _authState.value = null
     }
+
 
     private fun traducirErrorFirebase(error: String?): String {
         return when {

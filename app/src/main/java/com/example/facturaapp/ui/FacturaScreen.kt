@@ -49,7 +49,7 @@ fun FacturaScreen(
     var ivaPorcentaje by rememberSaveable { mutableStateOf("0") }
     var tipoFactura by rememberSaveable { mutableStateOf("Emitida") }
 
-    val facturaToEdit by viewModel.facturaToEdit.collectAsState()
+    val facturaToEdit by viewModel.getFacturaById(facturaId ?: "").collectAsState(initial = null)
     val uiMessage by viewModel.uiMessage.collectAsState()
 
     // Actualizar campos si se está editando una factura
@@ -92,7 +92,7 @@ fun FacturaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gestión de Facturas") },
+                title = { Text(if (facturaId != null) "Editar Factura" else "Crear Factura") },
                 actions = {
                     IconButton(onClick = onNavigateToList) {
                         Icon(imageVector = Icons.Default.List, contentDescription = "Ver Lista")

@@ -15,12 +15,11 @@ class FacturaRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
-    /**
-     * Obtiene todas las facturas del usuario autenticado en **tiempo real**.
-     */
     fun getAllFacturas(): Flow<List<FacturaEntity>> = callbackFlow {
-        val user = auth.currentUser ?: run {
-            close(Exception("Usuario no autenticado"))
+        val user = auth.currentUser
+        if (user == null) {
+            trySend(emptyList()).isSuccess
+            close()
             return@callbackFlow
         }
 
@@ -41,9 +40,17 @@ class FacturaRepository {
         }
 
         awaitClose { listener.remove() }
-    }.flowOn(Dispatchers.IO) // 🔹 Ahora se ejecuta en segundo plano
+    }.flowOn(Dispatchers.IO)
+
+
+
 
     fun getFacturaById(facturaId: String): Flow<FacturaEntity?> = callbackFlow {
+        if (facturaId.isBlank()) {
+            close(Exception("ID de factura vacío"))
+            return@callbackFlow
+        }
+
         val user = auth.currentUser ?: run {
             close(Exception("Usuario no autenticado"))
             return@callbackFlow
@@ -67,48 +74,54 @@ class FacturaRepository {
         awaitClose { listener.remove() } // Se detiene cuando ya no se usa
     }.flowOn(Dispatchers.IO)
 
-
-    /**
-     * Guarda una factura asociada al usuario autenticado.
-     */
     suspend fun addFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
         val user = auth.currentUser ?: throw Exception("Usuario no autenticado")
-        val facturaCollection = firestore.collection("usuarios").document(user.uid).collection("facturas")
+        val facturaCollection = firestore.collection("usuarios")
+            .document(user.uid)
+            .collection("facturas")
 
         try {
             val docRef = facturaCollection.add(factura.toMap()).await()
-            facturaCollection.document(docRef.id).set(factura.toMap(), SetOptions.merge()).await()
+            facturaCollection.document(docRef.id)
+                .set(factura.copy(id = docRef.id).toMap(), SetOptions.merge())
+                .await()
 
         } catch (e: Exception) {
             throw Exception("Error al guardar factura: ${e.message}")
         }
     }
 
-    /**
-     * Actualiza una factura del usuario autenticado.
-     */
     suspend fun updateFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
         val user = auth.currentUser ?: throw Exception("Usuario no autenticado")
-        if (factura.id.isNotEmpty()) {
+
+        if (factura.id.isBlank()) throw Exception("ID de factura vacío")
+
+        try {
             firestore.collection("usuarios")
                 .document(user.uid)
                 .collection("facturas")
                 .document(factura.id)
                 .set(factura.toMap(), SetOptions.merge())
                 .await()
+        } catch (e: Exception) {
+            throw Exception("Error al actualizar la factura: ${e.message}")
         }
     }
 
-    /**
-     * Elimina una factura del usuario autenticado.
-     */
     suspend fun deleteFactura(facturaId: String) = withContext(Dispatchers.IO) {
         val user = auth.currentUser ?: throw Exception("Usuario no autenticado")
-        firestore.collection("usuarios")
-            .document(user.uid)
-            .collection("facturas")
-            .document(facturaId)
-            .delete()
-            .await()
+
+        if (facturaId.isBlank()) throw Exception("ID de factura vacío")
+
+        try {
+            firestore.collection("usuarios")
+                .document(user.uid)
+                .collection("facturas")
+                .document(facturaId)
+                .delete()
+                .await()
+        } catch (e: Exception) {
+            throw Exception("Error al eliminar la factura: ${e.message}")
+        }
     }
 }

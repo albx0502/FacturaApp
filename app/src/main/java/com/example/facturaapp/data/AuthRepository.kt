@@ -11,10 +11,6 @@ class AuthRepository {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    /**
-     * Registra un usuario en Firebase Authentication y lo guarda en Firestore.
-     * Devuelve un Result indicando éxito o error.
-     */
     suspend fun signUpWithEmail(email: String, password: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
@@ -31,33 +27,21 @@ class AuthRepository {
         }
     }
 
-
-    /**
-     * Inicia sesión con email y password.
-     * Devuelve un Result indicando éxito o error.
-     */
     suspend fun signInWithEmail(email: String, password: String): Result<Unit> {
-        return withContext(Dispatchers.IO) { // 🔹 Ejecuta la autenticación en segundo plano
+        return withContext(Dispatchers.IO) {
             try {
                 auth.signInWithEmailAndPassword(email, password).await()
-                withContext(Dispatchers.Main) { Result.success(Unit) } // 🔹 Actualiza en el hilo principal
+                Result.success(Unit)
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Result.failure(e) } // 🔹 Manda el error sin bloquear la UI
+                Result.failure(e)
             }
         }
     }
 
-
-    /**
-     * Cierra sesión.
-     */
     fun signOut() {
         auth.signOut()
     }
 
-    /**
-     * Obtiene el usuario actual o `null` si no está autenticado.
-     */
     fun getCurrentUser(): FirebaseUser? {
         return auth.currentUser
     }

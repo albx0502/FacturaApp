@@ -2,13 +2,6 @@ package com.example.facturaapp.data
 
 import com.google.firebase.firestore.Exclude
 
-/**
- * Representa una Factura en Firestore.
- *
- * - 'id' => ID autogenerado (String).
- * - 'numeroFactura', 'fechaEmision', etc. => campos de la factura.
- * - 'tipoFactura' => "Emitida" o "Recibida".
- */
 data class FacturaEntity(
     var id: String = "",
     var numeroFactura: String = "",
