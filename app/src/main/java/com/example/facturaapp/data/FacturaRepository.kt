@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 class FacturaRepository {
     private val firestore = FirebaseFirestore.getInstance()
@@ -23,7 +24,8 @@ class FacturaRepository {
             return@callbackFlow
         }
 
-        val facturaCollection = firestore.collection("usuarios").document(user.uid).collection("facturas")
+        val facturaCollection = firestore.collection("usuarios")
+            .document(user.uid).collection("facturas")
 
         val listener = facturaCollection.addSnapshotListener { snapshot, e ->
             if (e != null) {
@@ -63,23 +65,20 @@ class FacturaRepository {
         }
 
         awaitClose { listener.remove() } // Se detiene cuando ya no se usa
-    }
+    }.flowOn(Dispatchers.IO)
 
 
     /**
      * Guarda una factura asociada al usuario autenticado.
      */
-    suspend fun addFactura(factura: FacturaEntity) {
+    suspend fun addFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
         val user = auth.currentUser ?: throw Exception("Usuario no autenticado")
         val facturaCollection = firestore.collection("usuarios").document(user.uid).collection("facturas")
 
         try {
             val docRef = facturaCollection.add(factura.toMap()).await()
-            factura.id = docRef.id
+            facturaCollection.document(docRef.id).set(factura.toMap(), SetOptions.merge()).await()
 
-            facturaCollection.document(docRef.id)
-                .set(factura.toMap(), SetOptions.merge())
-                .await()
         } catch (e: Exception) {
             throw Exception("Error al guardar factura: ${e.message}")
         }
@@ -88,32 +87,28 @@ class FacturaRepository {
     /**
      * Actualiza una factura del usuario autenticado.
      */
-    suspend fun updateFactura(factura: FacturaEntity) {
+    suspend fun updateFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
         val user = auth.currentUser ?: throw Exception("Usuario no autenticado")
-        val facturaCollection = firestore.collection("usuarios").document(user.uid).collection("facturas")
-
-        try {
-            if (factura.id.isNotEmpty()) {
-                facturaCollection.document(factura.id)
-                    .set(factura.toMap(), SetOptions.merge())
-                    .await()
-            }
-        } catch (e: Exception) {
-            throw Exception("Error al actualizar factura: ${e.message}")
+        if (factura.id.isNotEmpty()) {
+            firestore.collection("usuarios")
+                .document(user.uid)
+                .collection("facturas")
+                .document(factura.id)
+                .set(factura.toMap(), SetOptions.merge())
+                .await()
         }
     }
 
     /**
      * Elimina una factura del usuario autenticado.
      */
-    suspend fun deleteFactura(facturaId: String) {
+    suspend fun deleteFactura(facturaId: String) = withContext(Dispatchers.IO) {
         val user = auth.currentUser ?: throw Exception("Usuario no autenticado")
-        val facturaCollection = firestore.collection("usuarios").document(user.uid).collection("facturas")
-
-        try {
-            facturaCollection.document(facturaId).delete().await()
-        } catch (e: Exception) {
-            throw Exception("Error al eliminar la factura: ${e.message}")
-        }
+        firestore.collection("usuarios")
+            .document(user.uid)
+            .collection("facturas")
+            .document(facturaId)
+            .delete()
+            .await()
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.facturaapp.data.FacturaEntity
 import java.text.NumberFormat
 import java.util.*
@@ -24,11 +25,11 @@ import java.util.*
 fun FacturaListScreen(
     viewModel: FacturaViewModel,
     authViewModel: AuthViewModel,
-    navController: androidx.navigation.NavController,
+    navController: NavController,
     onFacturaClick: (FacturaEntity) -> Unit,
     onNavigateToForm: () -> Unit,
 ) {
-    val facturas by remember { viewModel.facturas }.collectAsState()
+    val facturas by viewModel.facturas.collectAsState()
 
     Scaffold(
         topBar = {
@@ -55,7 +56,7 @@ fun FacturaListScreen(
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             if (facturas.isEmpty()) {
-                EmptyStateMessage(paddingValues) // 🔹 Usamos la función reutilizable
+                EmptyStateMessage(paddingValues)
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -69,6 +70,7 @@ fun FacturaListScreen(
         }
     }
 }
+
 
 /**
  * Muestra un mensaje cuando no hay facturas disponibles.
