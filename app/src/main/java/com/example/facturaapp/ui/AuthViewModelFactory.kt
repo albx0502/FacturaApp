@@ -9,7 +9,12 @@ import com.example.facturaapp.data.AuthRepository
  */
 class AuthViewModelFactory(private val repository: AuthRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return modelClass.getConstructor(AuthRepository::class.java)
-            .newInstance(repository)
+        return when {
+            modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                AuthViewModel(repository) as T
+            }
+            else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+        }
     }
 }

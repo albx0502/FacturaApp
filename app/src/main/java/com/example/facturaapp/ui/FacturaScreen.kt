@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,31 +25,34 @@ import java.util.*
 /**
  * Pantalla de creación/edición de Facturas.
  */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FacturaScreen(
     viewModel: FacturaViewModel,
+    facturaId: String?,
     onNavigateToList: () -> Unit
 ) {
-    // Estados para los campos del formulario
-    var numeroFactura by remember { mutableStateOf("") }
-    var fechaEmision by remember { mutableStateOf("") }
-    var emisorEmpresa by remember { mutableStateOf("") }
-    var emisorNIF by remember { mutableStateOf("") }
-    var emisorDireccion by remember { mutableStateOf("") }
-    var receptorCliente by remember { mutableStateOf("") }
-    var receptorNIF by remember { mutableStateOf("") }
-    var receptorDireccion by remember { mutableStateOf("") }
-    var baseImponible by remember { mutableStateOf("") }
-    var ivaPorcentaje by remember { mutableStateOf("0") }
-    var tipoFactura by remember { mutableStateOf("Emitida") }
-
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    val facturaToEdit by remember { viewModel.facturaToEdit }.collectAsState()
+    // Estados guardados incluso si la pantalla se recomponen o rota el dispositivo.
+    var numeroFactura by rememberSaveable { mutableStateOf("") }
+    var fechaEmision by rememberSaveable { mutableStateOf("") }
+    var emisorEmpresa by rememberSaveable { mutableStateOf("") }
+    var emisorNIF by rememberSaveable { mutableStateOf("") }
+    var emisorDireccion by rememberSaveable { mutableStateOf("") }
+    var receptorCliente by rememberSaveable { mutableStateOf("") }
+    var receptorNIF by rememberSaveable { mutableStateOf("") }
+    var receptorDireccion by rememberSaveable { mutableStateOf("") }
+    var baseImponible by rememberSaveable { mutableStateOf("") }
+    var ivaPorcentaje by rememberSaveable { mutableStateOf("0") }
+    var tipoFactura by rememberSaveable { mutableStateOf("Emitida") }
 
-    // Llenar campos cuando se edita una factura
+    val facturaToEdit by viewModel.facturaToEdit.collectAsState()
+    val uiMessage by viewModel.uiMessage.collectAsState()
+
+    // Actualizar campos si se está editando una factura
     LaunchedEffect(facturaToEdit) {
         facturaToEdit?.let { factura ->
             numeroFactura = factura.numeroFactura
@@ -65,7 +69,7 @@ fun FacturaScreen(
         }
     }
 
-    val uiMessage by viewModel.uiMessage.collectAsState()
+    // Manejo de mensajes en Snackbar
     LaunchedEffect(uiMessage) {
         uiMessage?.let {
             scope.launch {
@@ -75,16 +79,15 @@ fun FacturaScreen(
         }
     }
 
+    // Cálculo de IVA y total
     val baseDouble = baseImponible.toDoubleOrNull() ?: 0.0
     val ivaDouble = ivaPorcentaje.toDoubleOrNull() ?: 0.0
     val ivaCalculado = (baseDouble * ivaDouble) / 100
     val total = baseDouble + ivaCalculado
-
-    val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
+    val totalFormateado = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
         minimumFractionDigits = 2
         maximumFractionDigits = 2
-    }
-    val totalFormateado = decimalFormat.format(total)
+    }.format(total)
 
     Scaffold(
         topBar = {
@@ -97,54 +100,14 @@ fun FacturaScreen(
                 }
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                val factura = facturaToEdit?.copy(
-                    numeroFactura = numeroFactura,
-                    fechaEmision = fechaEmision,
-                    emisor = emisorEmpresa,
-                    emisorNIF = emisorNIF,
-                    emisorDireccion = emisorDireccion,
-                    receptor = receptorCliente,
-                    receptorNIF = receptorNIF,
-                    receptorDireccion = receptorDireccion,
-                    baseImponible = baseDouble,
-                    iva = ivaCalculado,
-                    total = total,
-                    tipoFactura = tipoFactura
-                ) ?: FacturaEntity(
-                    id = "",
-                    numeroFactura = if (numeroFactura.isBlank()) UUID.randomUUID().toString() else numeroFactura,
-                    fechaEmision = fechaEmision,
-                    emisor = emisorEmpresa,
-                    emisorNIF = emisorNIF,
-                    emisorDireccion = emisorDireccion,
-                    receptor = receptorCliente,
-                    receptorNIF = receptorNIF,
-                    receptorDireccion = receptorDireccion,
-                    baseImponible = baseDouble,
-                    iva = ivaCalculado,
-                    total = total,
-                    tipoFactura = tipoFactura
+                handleSaveFactura(
+                    numeroFactura, fechaEmision, emisorEmpresa, emisorNIF, emisorDireccion,
+                    receptorCliente, receptorNIF, receptorDireccion, baseDouble, ivaCalculado,
+                    total, tipoFactura, facturaToEdit, viewModel
                 )
-
-                viewModel.saveFactura(factura)
-
-                if (facturaToEdit != null) {
-                    viewModel.editFactura(null)
-                } else {
-                    numeroFactura = ""
-                    fechaEmision = ""
-                    emisorEmpresa = ""
-                    emisorNIF = ""
-                    emisorDireccion = ""
-                    receptorCliente = ""
-                    receptorNIF = ""
-                    receptorDireccion = ""
-                    baseImponible = ""
-                    ivaPorcentaje = "0"
-                    tipoFactura = "Emitida"
-                }
             }) {
                 Icon(imageVector = Icons.Default.Check, contentDescription = "Guardar Factura")
             }
@@ -181,6 +144,32 @@ fun FacturaScreen(
             }
         }
     }
+}
+
+/**
+ * Guarda o edita una factura de manera optimizada.
+ */
+fun handleSaveFactura(
+    numeroFactura: String, fechaEmision: String, emisor: String, emisorNIF: String, emisorDireccion: String,
+    receptor: String, receptorNIF: String, receptorDireccion: String, baseImponible: Double,
+    iva: Double, total: Double, tipoFactura: String, facturaToEdit: FacturaEntity?, viewModel: FacturaViewModel
+) {
+    val factura = facturaToEdit?.copy(
+        numeroFactura = numeroFactura,
+        fechaEmision = fechaEmision,
+        emisor = emisor,
+        emisorNIF = emisorNIF,
+        emisorDireccion = emisorDireccion,
+        receptor = receptor,
+        receptorNIF = receptorNIF,
+        receptorDireccion = receptorDireccion,
+        baseImponible = baseImponible,
+        iva = iva,
+        total = total,
+        tipoFactura = tipoFactura
+    ) ?: FacturaEntity("", numeroFactura, fechaEmision, emisor, emisorNIF, emisorDireccion, receptor, receptorNIF, receptorDireccion, baseImponible, iva, total, tipoFactura)
+
+    viewModel.saveFactura(factura)
 }
 
 @Composable

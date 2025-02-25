@@ -1,13 +1,12 @@
 package com.example.facturaapp.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.facturaapp.data.FacturaEntity
 import com.example.facturaapp.data.FacturaRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() {
 
@@ -20,7 +19,7 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
     private val _facturaToEdit = MutableStateFlow<FacturaEntity?>(null)
     val facturaToEdit: StateFlow<FacturaEntity?> = _facturaToEdit.asStateFlow()
 
-    fun setUiMessage(message: String) {
+    private fun setUiMessage(message: String) {
         _uiMessage.value = message
     }
 
@@ -28,8 +27,9 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
         _uiMessage.value = null
     }
 
-    fun getFacturaById(facturaId: String): Flow<FacturaEntity?> {
+    fun getFacturaById(facturaId: String): StateFlow<FacturaEntity?> {
         return repository.getFacturaById(facturaId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }
 
     fun editFactura(factura: FacturaEntity?) {
@@ -37,12 +37,13 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
     }
 
     fun deleteFactura(factura: FacturaEntity) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 repository.deleteFactura(factura.id)
-                withContext(Dispatchers.Main) { setUiMessage("Factura eliminada con éxito") }
+                setUiMessage("Factura eliminada con éxito")
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { setUiMessage("Error al eliminar la factura: ${e.message}") }
+                Log.e("FacturaViewModel", "Error al eliminar la factura", e)
+                setUiMessage("Error al eliminar la factura: ${e.message}")
             }
         }
     }
@@ -53,17 +54,18 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 if (factura.id.isEmpty()) {
                     repository.addFactura(factura)
-                    withContext(Dispatchers.Main) { setUiMessage("Factura creada con éxito") }
+                    setUiMessage("Factura creada con éxito")
                 } else {
                     repository.updateFactura(factura)
-                    withContext(Dispatchers.Main) { setUiMessage("Factura actualizada con éxito") }
+                    setUiMessage("Factura actualizada con éxito")
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { setUiMessage("Error al guardar la factura: ${e.message}") }
+                Log.e("FacturaViewModel", "Error al guardar la factura", e)
+                setUiMessage("Error al guardar la factura: ${e.message}")
             }
         }
     }

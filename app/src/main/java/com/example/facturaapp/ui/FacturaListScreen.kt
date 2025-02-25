@@ -8,13 +8,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.facturaapp.data.FacturaEntity
 import java.text.NumberFormat
@@ -29,7 +27,7 @@ fun FacturaListScreen(
     onFacturaClick: (FacturaEntity) -> Unit,
     onNavigateToForm: () -> Unit,
 ) {
-    val facturas by viewModel.facturas.collectAsState()
+    val facturas by viewModel.facturas.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -62,7 +60,7 @@ fun FacturaListScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(16.dp)
                 ) {
-                    items(facturas) { factura ->
+                    items(facturas, key = { it.id }) { factura ->
                         FacturaCard(factura, onFacturaClick)
                     }
                 }
@@ -71,10 +69,6 @@ fun FacturaListScreen(
     }
 }
 
-
-/**
- * Muestra un mensaje cuando no hay facturas disponibles.
- */
 @Composable
 fun EmptyStateMessage(paddingValues: PaddingValues) {
     Box(
@@ -87,24 +81,19 @@ fun EmptyStateMessage(paddingValues: PaddingValues) {
     }
 }
 
-/**
- * Tarjeta que representa una factura en la lista.
- */
 @Composable
 fun FacturaCard(
     factura: FacturaEntity,
     onFacturaClick: (FacturaEntity) -> Unit
 ) {
-    val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
-        minimumFractionDigits = 2
-        maximumFractionDigits = 2
-    }
+    val decimalFormat = remember { NumberFormat.getNumberInstance(Locale("es", "ES")) } // 🚀 Optimización
+    val totalFormatted = remember { decimalFormat.format(factura.total) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onFacturaClick(factura) }
-            .padding(4.dp), // Espaciado uniforme
+            .padding(4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -121,7 +110,7 @@ fun FacturaCard(
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Total: ${decimalFormat.format(factura.total)} €",
+                text = "Total: $totalFormatted €",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.align(Alignment.End)
             )

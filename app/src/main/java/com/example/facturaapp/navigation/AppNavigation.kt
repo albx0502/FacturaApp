@@ -1,12 +1,8 @@
 package com.example.facturaapp.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.facturaapp.ui.*
 import com.google.firebase.auth.FirebaseUser
@@ -17,13 +13,17 @@ fun AppNavigation(
     authViewModel: AuthViewModel
 ) {
     val navController = rememberNavController()
-    val currentUser: FirebaseUser? = authViewModel.authState.collectAsState().value
+    val currentUser by authViewModel.authState.collectAsState()
 
-    // Manejar redirección al detectar cambios en el usuario autenticado
+    // Manejo de redirección basado en el estado de autenticación
     LaunchedEffect(currentUser) {
-        if (currentUser != null) {
+        if (currentUser != null && navController.currentDestination?.route != "list") {
             navController.navigate("list") {
-                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                popUpTo("login") { inclusive = true } // Limpiamos el historial de login
+            }
+        } else if (currentUser == null && navController.currentDestination?.route != "login") {
+            navController.navigate("login") {
+                popUpTo("list") { inclusive = true } // Evita que el usuario vuelva a la lista si cerró sesión
             }
         }
     }
@@ -31,34 +31,24 @@ fun AppNavigation(
     NavHost(navController = navController, startDestination = if (currentUser != null) "list" else "login") {
 
         // Pantalla de Login
-        composable(route = "login") {
+        composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
-                onNavigateToRegister = {
-                    navController.navigate("register")
-                },
-                onLoginSuccess = {
-                    navController.navigate("list") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                }
+                onNavigateToRegister = { navController.navigate("register") },
+                onLoginSuccess = { navController.navigate("list") }
             )
         }
 
         // Pantalla de Registro
-        composable(route = "register") {
+        composable("register") {
             RegisterScreen(
                 authViewModel = authViewModel,
-                onRegistrationSuccess = {
-                    navController.navigate("list") {
-                        popUpTo("register") { inclusive = true }
-                    }
-                }
+                onRegistrationSuccess = { navController.navigate("list") }
             )
         }
 
         // Pantalla de Listado de Facturas
-        composable(route = "list") {
+        composable("list") {
             FacturaListScreen(
                 viewModel = facturaViewModel,
                 authViewModel = authViewModel,
@@ -66,15 +56,13 @@ fun AppNavigation(
                 onFacturaClick = { factura ->
                     navController.navigate("facturaDetail/${factura.id}")
                 },
-                onNavigateToForm = {
-                    navController.navigate("facturaForm")
-                }
+                onNavigateToForm = { navController.navigate("facturaForm") }
             )
         }
 
-        // 🔹 Pantalla de Detalle de Factura
+        // Pantalla de Detalle de Factura
         composable(
-            route = "facturaDetail/{facturaId}",
+            "facturaDetail/{facturaId}",
             arguments = listOf(navArgument("facturaId") { type = NavType.StringType })
         ) { backStackEntry ->
             val facturaId = backStackEntry.arguments?.getString("facturaId") ?: ""
@@ -85,18 +73,17 @@ fun AppNavigation(
             )
         }
 
-        // 🔹 Pantalla de Creación/Edición de Factura
-        composable(route = "facturaForm") {
+        // Pantalla de Creación/Edición de Factura
+        composable(
+            route = "facturaForm?facturaId={facturaId}",
+            arguments = listOf(navArgument("facturaId") { type = NavType.StringType; defaultValue = "" })
+        ) { backStackEntry ->
+            val facturaId = backStackEntry.arguments?.getString("facturaId").takeIf { it?.isNotBlank() == true }
             FacturaScreen(
                 viewModel = facturaViewModel,
-                onNavigateToList = {
-                    navController.navigate("list") {
-                        popUpTo("facturaForm") { inclusive = true }
-                    }
-                }
+                 facturaid = facturaId, // Pasamos el ID si existe, para editar la factura
+                onNavigateToList = { navController.navigate("list") }
             )
         }
-
     }
-
 }

@@ -65,8 +65,6 @@ dependencies {
     implementation(libs.androidx.material3)
 
     // Firebase Auth y Firestore (sin versiones fijas)
-    implementation("com.google.firebase:firebase-auth-ktx")
-    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
 
     testImplementation(libs.junit)
@@ -85,4 +83,8 @@ dependencies {
 
     // GMS Basement
     implementation("com.google.android.gms:play-services-basement:18.2.0")
+
+    implementation("com.google.android.gms:play-services-auth:20.6.0")
+    implementation("com.google.firebase:firebase-auth-ktx:22.0.0")
+    implementation("com.google.firebase:firebase-firestore-ktx:24.7.1")
 }

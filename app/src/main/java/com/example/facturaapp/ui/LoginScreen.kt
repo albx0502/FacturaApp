@@ -4,14 +4,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.launch
 
-/**
- * Pantalla de inicio de sesión con Email/Password.
- */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
@@ -22,27 +20,36 @@ fun LoginScreen(
     val authState by authViewModel.authState.collectAsState()
     val errorMessage by authViewModel.errorMessage.collectAsState()
 
-    // Si el usuario ya está logueado, navegamos a la pantalla principal.
-    LaunchedEffect(authState) {
-        if (authState != null) {
-            onLoginSuccess()
-        }
-    }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-    var isSubmitting by remember { mutableStateOf(false) } // Evitar múltiples envíos
+    var isSubmitting by remember { mutableStateOf(false) }
+
+    LaunchedEffect(authState) {
+        authState?.let { onLoginSuccess() }
+    }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            scope.launch { snackbarHostState.showSnackbar(it) }
+            authViewModel.clearError()
+            isSubmitting = false // ✅ Restablece el estado de carga
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Iniciar Sesión") })
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedTextField(
                 value = email,
@@ -61,32 +68,30 @@ fun LoginScreen(
                 singleLine = true
             )
 
-            // Mostrar error solo si `errorMessage` no es nulo
-            errorMessage?.let {
-                Text(
-                    text = it,
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = {
                     if (email.isBlank() || password.isBlank()) {
-                        authViewModel.setErrorMessage("Todos los campos son obligatorios")
+                        scope.launch { snackbarHostState.showSnackbar("Todos los campos son obligatorios") }
                     } else if (password.length < 6) {
-                        authViewModel.setErrorMessage("La contraseña debe tener al menos 6 caracteres.")
+                        scope.launch { snackbarHostState.showSnackbar("La contraseña debe tener al menos 6 caracteres.") }
                     } else {
                         isSubmitting = true
-                        authViewModel.signIn(email, password)
+                        scope.launch {
+                            authViewModel.signIn(email, password)
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSubmitting
             ) {
-                Text("Iniciar Sesión")
+                if (isSubmitting) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Text("Iniciar Sesión")
+                }
             }
-
 
             OutlinedButton(
                 onClick = { onNavigateToRegister() },

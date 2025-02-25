@@ -5,14 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.facturaapp.data.AuthRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-/**
- * AuthViewModel maneja la lógica de autenticación con FirebaseAuth.
- */
 class AuthViewModel(
     private val repository: AuthRepository
 ) : ViewModel() {
@@ -24,7 +19,7 @@ class AuthViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-        _authState.value = firebaseAuth.currentUser
+        _authState.value = firebaseAuth.currentUser // Se actualiza automáticamente con Firebase
     }
 
     init {
@@ -35,65 +30,46 @@ class AuthViewModel(
         _errorMessage.value = null
     }
 
-    // ✅ Nuevo método para establecer mensajes de error manualmente
     fun setErrorMessage(message: String) {
         _errorMessage.value = message
     }
 
-    /**
-     * Registro con email y password.
-     */
     fun signUp(email: String, password: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 repository.signUpWithEmail(email, password)
-                withContext(Dispatchers.Main) { _authState.value = repository.getCurrentUser() }
+                // 🔹 NO actualizamos `_authState` aquí, Firebase lo hará automáticamente
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { _errorMessage.value = traducirErrorFirebase(e.message) }
+                _errorMessage.value = traducirErrorFirebase(e.message)
             }
         }
     }
 
-    /**
-     * Inicio de sesión con email y password.
-     */
     fun signIn(email: String, password: String) {
-        viewModelScope.launch(Dispatchers.IO) {  // Ejecutar en segundo plano
+        viewModelScope.launch {
             try {
                 repository.signInWithEmail(email, password)
-                withContext(Dispatchers.Main) { _authState.value = repository.getCurrentUser() }
+                // 🔹 NO actualizamos `_authState` aquí, Firebase lo hará automáticamente
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { _errorMessage.value = traducirErrorFirebase(e.message) }
+                _errorMessage.value = traducirErrorFirebase(e.message)
             }
         }
     }
 
-
-    /**
-     * Cerrar sesión.
-     */
     fun signOut() {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.signOut()
-            withContext(Dispatchers.Main) {
-                _authState.value = null // Asegura que se actualiza en el hilo principal
-            }
-        }
+        repository.signOut() // ✅ Ahora se ejecuta directamente, sin `viewModelScope.launch`
+        _authState.value = null // Se actualiza manualmente para reflejar el estado
     }
 
-
-
-    /**
-     * Traduce los errores comunes de Firebase a español.
-     */
     private fun traducirErrorFirebase(error: String?): String {
         return when {
-            error?.contains("The email address is badly formatted") == true -> "Formato de correo inválido."
-            error?.contains("There is no user record corresponding to this identifier") == true -> "El usuario no existe."
-            error?.contains("The password is invalid") == true -> "Contraseña incorrecta."
-            error?.contains("The email address is already in use") == true -> "Este correo ya está registrado."
-            error?.contains("Password should be at least 6 characters") == true -> "La contraseña debe tener al menos 6 caracteres."
-            else -> "Error desconocido: $error"
+            error.isNullOrBlank() -> "Ha ocurrido un error inesperado."
+            error.contains("The email address is badly formatted", ignoreCase = true) -> "Formato de correo inválido."
+            error.contains("There is no user record corresponding to this identifier", ignoreCase = true) -> "El usuario no existe."
+            error.contains("The password is invalid", ignoreCase = true) -> "Contraseña incorrecta."
+            error.contains("The email address is already in use", ignoreCase = true) -> "Este correo ya está registrado."
+            error.contains("Password should be at least 6 characters", ignoreCase = true) -> "La contraseña debe tener al menos 6 caracteres."
+            else -> "Error: $error"
         }
     }
 
