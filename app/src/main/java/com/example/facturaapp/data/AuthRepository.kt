@@ -30,7 +30,11 @@ class AuthRepository {
     suspend fun signInWithEmail(email: String, password: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
-                auth.signInWithEmailAndPassword(email, password).await()
+                val result = auth.signInWithEmailAndPassword(email, password).await()
+
+                // 🔹 FORZAMOS la generación del token de autenticación
+                result.user?.getIdToken(true)?.await()
+
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(e)
@@ -38,9 +42,12 @@ class AuthRepository {
         }
     }
 
-    fun signOut() {
+
+    fun signOut(onSignOut: () -> Unit) {
         auth.signOut()
+        onSignOut()
     }
+
 
     fun getCurrentUser(): FirebaseUser? {
         return auth.currentUser

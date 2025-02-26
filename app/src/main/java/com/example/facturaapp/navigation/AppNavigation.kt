@@ -15,23 +15,26 @@ fun AppNavigation(
     val navController = rememberNavController()
     val currentUser by authViewModel.authState.collectAsState()
 
-    // Manejo de redirección basado en el estado de autenticación
+    // ✅ Manejo de navegación basado en la autenticación
     LaunchedEffect(currentUser) {
-        val currentRoute = navController.currentDestination?.route
-        if (currentUser != null && currentRoute != "list") {
-            navController.navigate("list") {
-                popUpTo("login") { inclusive = true } // Limpiamos historial de login
+        val currentRoute = navController.currentBackStackEntry?.destination?.route
+        when {
+            currentUser == null && currentRoute != "login" -> {
+                navController.navigate("login") {
+                    popUpTo(0) // 🔹 Elimina historial para evitar regresar con "atrás"
+                }
             }
-        } else if (currentUser == null && currentRoute != "login") {
-            navController.navigate("login") {
-                popUpTo("list") { inclusive = true } // Evita que el usuario vuelva si cerró sesión
+            currentUser != null && currentRoute in listOf("login", "register") -> {
+                navController.navigate("list") {
+                    popUpTo("login") { inclusive = true } // 🔹 Limpia historial solo si viene de login
+                }
             }
         }
     }
 
     NavHost(navController = navController, startDestination = if (currentUser != null) "list" else "login") {
 
-        // Pantalla de Login
+        // ✅ Pantalla de Login
         composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -40,7 +43,7 @@ fun AppNavigation(
             )
         }
 
-        // Pantalla de Registro
+        // ✅ Pantalla de Registro
         composable("register") {
             RegisterScreen(
                 authViewModel = authViewModel,
@@ -48,7 +51,7 @@ fun AppNavigation(
             )
         }
 
-        // Pantalla de Listado de Facturas
+        // ✅ Pantalla de Listado de Facturas
         composable("list") {
             FacturaListScreen(
                 viewModel = facturaViewModel,
@@ -57,11 +60,11 @@ fun AppNavigation(
                 onFacturaClick = { factura ->
                     navController.navigate("facturaDetail/${factura.id}")
                 },
-                onNavigateToForm = { navController.navigate("facturaForm") } // <-- Agregamos la versión sin parámetros
+                onNavigateToForm = { navController.navigate("facturaForm") }
             )
         }
 
-        // Pantalla de Detalle de Factura
+        // ✅ Pantalla de Detalle de Factura
         composable(
             "facturaDetail/{facturaId}",
             arguments = listOf(navArgument("facturaId") { type = NavType.StringType })
@@ -74,8 +77,8 @@ fun AppNavigation(
             )
         }
 
-        // Pantalla de Creación/Edición de Factura (con facturaId opcional)
-        composable("facturaForm") { // 🚀 Agregar versión sin parámetros
+        // ✅ Pantalla de Creación/Edición de Factura
+        composable("facturaForm") {
             FacturaScreen(
                 viewModel = facturaViewModel,
                 facturaId = null,

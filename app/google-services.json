@@ -12,7 +12,20 @@
           "package_name": "com.example.facturaapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "386132388189-r0vud1nqghn4ddc239foflm3udbs1fnl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.facturaapp",
+            "certificate_hash": "dfb0b3b8135b75ac1cf8993ae188eaf1f0e2c3d8"
+          }
+        },
+        {
+          "client_id": "386132388189-rh317klh21audni46cu9qon1pq13882p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBt3Hgi-D3LLXnHQSBNusKvN0nRBdShW7I"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "386132388189-rh317klh21audni46cu9qon1pq13882p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

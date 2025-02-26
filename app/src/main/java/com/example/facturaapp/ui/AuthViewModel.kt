@@ -11,7 +11,6 @@ import kotlinx.coroutines.launch
 
 class AuthViewModel(
     private val repository: AuthRepository,
-    private val facturaRepository: FacturaRepository // 🔹 Se inyecta el repositorio correcto
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<FirebaseUser?>(repository.getCurrentUser())
@@ -60,11 +59,12 @@ class AuthViewModel(
 
     fun signOut() {
         viewModelScope.launch {
-            facturaRepository.cancelAllFirestoreListeners() // 🔹 Ahora usa la instancia real
-            repository.signOut()
-            _authState.value = null
+            repository.signOut {
+                _authState.value = null // Se actualiza cuando se cierra sesión
+            }
         }
     }
+
 
     private fun traducirErrorFirebase(error: String?): String {
         return when {

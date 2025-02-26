@@ -1,5 +1,6 @@
 package com.example.facturaapp.data
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -13,25 +14,27 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 class FacturaRepository {
+
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
-
-    // 🔹 Lista de listeners activos para Firestore
     private val listeners = mutableListOf<ListenerRegistration>()
 
     fun getAllFacturas(): Flow<List<FacturaEntity>> = callbackFlow {
         val user = auth.currentUser
         if (user == null) {
+            Log.w("FacturaRepository", "Usuario no autenticado - No se pueden obtener facturas.")
             trySend(emptyList()).isSuccess
             close()
             return@callbackFlow
         }
 
         val facturaCollection = firestore.collection("usuarios")
-            .document(user.uid).collection("facturas")
+            .document(user.uid)
+            .collection("facturas")
 
         val listener = facturaCollection.addSnapshotListener { snapshot, e ->
             if (e != null) {
+                Log.e("FacturaRepository", "Error obteniendo facturas: ${e.message}")
                 close(e)
                 return@addSnapshotListener
             }
@@ -40,21 +43,23 @@ class FacturaRepository {
                 doc.toObject(FacturaEntity::class.java)?.copy(id = doc.id)
             } ?: emptyList()
 
+            Log.d("FacturaRepository", "Facturas obtenidas: ${facturas.size}")
             trySend(facturas).isSuccess
         }
 
-        // 🔹 Guardar referencia del listener
         listeners.add(listener)
         awaitClose { listener.remove() }
     }.flowOn(Dispatchers.IO)
 
     fun getFacturaById(facturaId: String): Flow<FacturaEntity?> = callbackFlow {
         if (facturaId.isBlank()) {
+            Log.e("FacturaRepository", "ID de factura vacío")
             close(Exception("ID de factura vacío"))
             return@callbackFlow
         }
 
         val user = auth.currentUser ?: run {
+            Log.e("FacturaRepository", "Usuario no autenticado")
             close(Exception("Usuario no autenticado"))
             return@callbackFlow
         }
@@ -66,15 +71,16 @@ class FacturaRepository {
 
         val listener = facturaDoc.addSnapshotListener { snapshot, e ->
             if (e != null) {
+                Log.e("FacturaRepository", "Error obteniendo factura: ${e.message}")
                 close(e)
                 return@addSnapshotListener
             }
 
             val factura = snapshot?.toObject(FacturaEntity::class.java)?.copy(id = facturaId)
+            Log.d("FacturaRepository", "Factura obtenida: ${factura?.id ?: "Ninguna"}")
             trySend(factura).isSuccess
         }
 
-        // 🔹 Guardar referencia del listener
         listeners.add(listener)
         awaitClose { listener.remove() }
     }.flowOn(Dispatchers.IO)
@@ -86,15 +92,21 @@ class FacturaRepository {
             .collection("facturas")
 
         try {
-            val docRef = facturaCollection.add(factura.toMap()).await()
-            facturaCollection.document(docRef.id)
-                .set(factura.copy(id = docRef.id).toMap(), SetOptions.merge())
-                .await()
+            val docRef = facturaCollection.document() // Firestore genera el ID aquí
+            val newFactura = factura.copy(
+                id = docRef.id,
+                numeroFactura = factura.numeroFactura.ifEmpty { docRef.id } // Asigna el ID si está vacío
+            )
+
+            docRef.set(newFactura.toMap()).await()
+            Log.d("FacturaRepository", "Factura creada con ID: ${newFactura.id} y número: ${newFactura.numeroFactura}")
 
         } catch (e: Exception) {
+            Log.e("FacturaRepository", "Error al guardar factura: ${e.message}")
             throw Exception("Error al guardar factura: ${e.message}")
         }
     }
+
 
     suspend fun updateFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
         val user = auth.currentUser ?: throw Exception("Usuario no autenticado")
@@ -108,7 +120,10 @@ class FacturaRepository {
                 .document(factura.id)
                 .set(factura.toMap(), SetOptions.merge())
                 .await()
+            Log.d("FacturaRepository", "Factura actualizada: ${factura.id}")
+
         } catch (e: Exception) {
+            Log.e("FacturaRepository", "Error al actualizar la factura: ${e.message}")
             throw Exception("Error al actualizar la factura: ${e.message}")
         }
     }
@@ -125,14 +140,17 @@ class FacturaRepository {
                 .document(facturaId)
                 .delete()
                 .await()
+            Log.d("FacturaRepository", "Factura eliminada: $facturaId")
+
         } catch (e: Exception) {
+            Log.e("FacturaRepository", "Error al eliminar la factura: ${e.message}")
             throw Exception("Error al eliminar la factura: ${e.message}")
         }
     }
 
-    // ✅ NUEVO: Cancelar todas las consultas activas
     fun cancelAllFirestoreListeners() {
         listeners.forEach { it.remove() }
         listeners.clear()
+        Log.d("FacturaRepository", "Se han cancelado todos los listeners de Firestore")
     }
 }

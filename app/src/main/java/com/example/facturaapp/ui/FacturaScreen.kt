@@ -1,6 +1,7 @@
 package com.example.facturaapp.ui
 
 import android.app.DatePickerDialog
+import android.util.Log
 import android.widget.DatePicker
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -155,6 +156,8 @@ fun handleSaveFactura(
     receptor: String, receptorNIF: String, receptorDireccion: String, baseImponible: Double,
     iva: Double, total: Double, tipoFactura: String, facturaToEdit: FacturaEntity?, viewModel: FacturaViewModel
 ) {
+    Log.d("FacturaDebug", "Número: $numeroFactura, Emisor: $emisor, Receptor: $receptor")
+
     if (numeroFactura.isBlank() || emisor.isBlank() || receptor.isBlank()) {
         viewModel.setUiMessage("Los campos Número de Factura, Emisor y Receptor son obligatorios.")
         return

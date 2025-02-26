@@ -8,6 +8,7 @@ import com.example.facturaapp.data.AuthRepository
 import com.example.facturaapp.data.FacturaRepository
 import com.example.facturaapp.navigation.AppNavigation
 import com.example.facturaapp.ui.AuthViewModel
+import com.example.facturaapp.ui.AuthViewModelFactory
 import com.example.facturaapp.ui.FacturaViewModel
 import com.example.facturaapp.ui.FacturaViewModelFactory
 import com.example.facturaapp.ui.theme.FacturaAppTheme
@@ -19,14 +20,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             FacturaAppTheme {
-                // ✅ Instanciar repositorios
                 val facturaRepository = FacturaRepository()
                 val authRepository = AuthRepository()
 
-                // ✅ Instanciar AuthViewModel (NO necesita Factory)
-                val authViewModel: AuthViewModel = viewModel { AuthViewModel(authRepository) }
-
-                // ✅ Instanciar FacturaViewModel usando su Factory
+                val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository))
                 val facturaViewModel: FacturaViewModel = viewModel(factory = FacturaViewModelFactory(facturaRepository))
 
 
@@ -36,5 +33,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+
     }
 }
