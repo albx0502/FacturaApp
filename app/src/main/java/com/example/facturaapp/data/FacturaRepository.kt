@@ -86,20 +86,22 @@ class FacturaRepository {
     }.flowOn(Dispatchers.IO)
 
     suspend fun addFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
-        val user = auth.currentUser ?: throw Exception("Usuario no autenticado")
+        val user = auth.currentUser
+        if (user == null) {
+            Log.e("FacturaRepository", "Usuario no autenticado - No se puede añadir la factura.")
+            throw Exception("Usuario no autenticado")
+        }
+
         val facturaCollection = firestore.collection("usuarios")
             .document(user.uid)
             .collection("facturas")
 
         try {
-            val docRef = facturaCollection.document() // Firestore genera el ID aquí
-            val newFactura = factura.copy(
-                id = docRef.id,
-                numeroFactura = factura.numeroFactura.ifEmpty { docRef.id } // Asigna el ID si está vacío
-            )
+            val docRef = facturaCollection.document()
+            val newFactura = factura.copy(id = docRef.id, numeroFactura = docRef.id)
 
             docRef.set(newFactura.toMap()).await()
-            Log.d("FacturaRepository", "Factura creada con ID: ${newFactura.id} y número: ${newFactura.numeroFactura}")
+            Log.d("FacturaRepository", "Factura añadida correctamente: ${newFactura.id}")
 
         } catch (e: Exception) {
             Log.e("FacturaRepository", "Error al guardar factura: ${e.message}")

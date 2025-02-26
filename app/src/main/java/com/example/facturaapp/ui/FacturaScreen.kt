@@ -22,23 +22,42 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FacturaScreen(
     viewModel: FacturaViewModel,
+    authViewModel: AuthViewModel,
     facturaId: String?,
+    navController: NavController,
     onNavigateToList: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Evitar pasar ID vacío
+    // Observamos si el usuario está autenticado
+    val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsState(initial = false)
+
+    // Redirigir al login si el usuario no está autenticado
+    LaunchedEffect(isUserLoggedIn) {
+        if (!isUserLoggedIn) {
+            navController.navigate("login") {
+                popUpTo("facturaScreen") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
+    if (!isUserLoggedIn) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     val safeFacturaId = facturaId?.takeIf { it.isNotBlank() }
-
-    // Estado de la factura a editar (si existe)
     val facturaToEdit by viewModel.getFacturaById(safeFacturaId ?: "").collectAsState(initial = null)
-
     val uiMessage by viewModel.uiMessage.collectAsState()
 
     // Estados de los campos
@@ -54,7 +73,6 @@ fun FacturaScreen(
     var ivaPorcentaje by rememberSaveable { mutableStateOf("0") }
     var tipoFactura by rememberSaveable { mutableStateOf("Emitida") }
 
-    // Actualizar los campos solo si `facturaToEdit` no es null
     LaunchedEffect(facturaToEdit) {
         facturaToEdit?.let { factura ->
             numeroFactura = factura.numeroFactura
@@ -71,7 +89,6 @@ fun FacturaScreen(
         }
     }
 
-    // Manejo de mensajes en Snackbar
     LaunchedEffect(uiMessage) {
         uiMessage?.let {
             scope.launch {
@@ -81,7 +98,6 @@ fun FacturaScreen(
         }
     }
 
-    // Cálculo de IVA y total
     val baseDouble = baseImponible.toDoubleOrNull() ?: 0.0
     val ivaDouble = ivaPorcentaje.toDoubleOrNull() ?: 0.0
     val ivaCalculado = (baseDouble * ivaDouble) / 100

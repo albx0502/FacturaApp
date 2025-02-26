@@ -16,6 +16,12 @@ class AuthViewModel(
     private val _authState = MutableStateFlow<FirebaseUser?>(repository.getCurrentUser())
     val authState: StateFlow<FirebaseUser?> = _authState.asStateFlow()
 
+    val isUserLoggedIn: StateFlow<Boolean> = _authState.map { it != null }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = repository.getCurrentUser() != null
+    )
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 

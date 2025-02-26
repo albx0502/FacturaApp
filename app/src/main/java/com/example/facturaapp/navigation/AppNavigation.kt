@@ -6,6 +6,10 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.facturaapp.ui.*
 import com.google.firebase.auth.FirebaseUser
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 
 @Composable
 fun AppNavigation(
@@ -73,14 +77,18 @@ fun AppNavigation(
             FacturaDetailScreen(
                 facturaId = facturaId,
                 viewModel = facturaViewModel,
+                authViewModel = authViewModel, // <-- Asegúrate de pasar authViewModel aquí
                 navController = navController
             )
         }
+
 
         // ✅ Pantalla de Creación/Edición de Factura
         composable("facturaForm") {
             FacturaScreen(
                 viewModel = facturaViewModel,
+                authViewModel = authViewModel, // <-- Agrega esto
+                navController = navController, // <-- Agrega esto
                 facturaId = null,
                 onNavigateToList = { navController.navigate("list") }
             )
@@ -96,9 +104,12 @@ fun AppNavigation(
             val facturaId = backStackEntry.arguments?.getString("facturaId")
             FacturaScreen(
                 viewModel = facturaViewModel,
+                authViewModel = authViewModel, // <-- Agrega esto
+                navController = navController, // <-- Agrega esto
                 facturaId = facturaId,
                 onNavigateToList = { navController.navigate("list") }
             )
         }
+
     }
 }

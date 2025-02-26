@@ -1,5 +1,6 @@
 package com.example.facturaapp.data
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -52,5 +53,11 @@ class AuthRepository {
     fun getCurrentUser(): FirebaseUser? {
         return auth.currentUser
     }
+    fun isUserLoggedIn(): Boolean {
+        val isLoggedIn = auth.currentUser != null
+        Log.d("AuthRepository", "Usuario autenticado: $isLoggedIn")
+        return isLoggedIn
+    }
+
 
 }

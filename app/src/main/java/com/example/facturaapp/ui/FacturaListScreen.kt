@@ -28,7 +28,17 @@ fun FacturaListScreen(
     onFacturaClick: (FacturaEntity) -> Unit,
     onNavigateToForm: () -> Unit,
 ) {
-    // 🔹 Corregido: Se obtiene directamente el estado sin `remember {}`.
+    val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isUserLoggedIn) {
+        if (!isUserLoggedIn) {
+            navController.navigate("login") {
+                popUpTo("list") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
     val facturas by viewModel.facturas.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -36,41 +46,50 @@ fun FacturaListScreen(
             TopAppBar(
                 title = { Text("Listado de Facturas") },
                 actions = {
-                    IconButton(onClick = onNavigateToForm) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Agregar Factura")
-                    }
-                    IconButton(
-                        onClick = {
-                            authViewModel.signOut()
-                            viewModel.clearFacturasOnLogout() // 🚀 Limpiar facturas para evitar error en Firestore
-                            navController.navigate("login") {
-                                popUpTo("list") { inclusive = true }
-                                launchSingleTop = true
-                            }
+                    if (isUserLoggedIn) {
+                        IconButton(onClick = onNavigateToForm) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "Agregar Factura")
                         }
-                    ) {
-                        Icon(imageVector = Icons.Default.ExitToApp, contentDescription = "Cerrar Sesión")
+                        IconButton(
+                            onClick = {
+                                authViewModel.signOut()
+                                viewModel.clearFacturasOnLogout()
+                                navController.navigate("login") {
+                                    popUpTo("list") { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        ) {
+                            Icon(imageVector = Icons.Default.ExitToApp, contentDescription = "Cerrar Sesión")
+                        }
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
-            if (facturas.isEmpty()) {
-                EmptyStateMessage()
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    items(facturas, key = { it.id }) { factura ->
-                        FacturaCard(factura, onFacturaClick)
+        if (isUserLoggedIn) {
+            Column(modifier = Modifier.padding(paddingValues)) {
+                if (facturas.isEmpty()) {
+                    EmptyStateMessage()
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        items(facturas, key = { it.id }) { factura ->
+                            FacturaCard(factura, onFacturaClick)
+                        }
                     }
                 }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
         }
     }
 }
+
 
 @Composable
 fun EmptyStateMessage() {

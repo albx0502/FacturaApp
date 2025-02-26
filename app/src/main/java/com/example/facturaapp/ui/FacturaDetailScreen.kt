@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.facturaapp.data.FacturaEntity
 import java.text.NumberFormat
@@ -20,8 +21,20 @@ import java.util.*
 fun FacturaDetailScreen(
     facturaId: String,
     viewModel: FacturaViewModel,
+    authViewModel: AuthViewModel,
     navController: NavController
 ) {
+    val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isUserLoggedIn) {
+        if (!isUserLoggedIn) {
+            navController.navigate("login") {
+                popUpTo("facturaDetail") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
     val factura by viewModel.getFacturaById(facturaId).collectAsState(initial = null)
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -37,48 +50,55 @@ fun FacturaDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (factura == null) {
+        if (!isUserLoggedIn) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
-            val facturaData = remember(factura) { getFacturaDetails(factura!!) } // 🚀 Optimización
-            LazyColumn(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(facturaData) { detail ->
-                    DetailItem(label = detail.first, value = detail.second)
+            if (factura == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
-                item {
-                    ActionButtons(
-                        factura = factura!!,
-                        onBackClick = { navController.popBackStack() },
-                        onEditClick = {
-                            viewModel.editFactura(factura!!)
-                            navController.navigate("facturaForm")
+            } else {
+                val facturaData = remember(factura) { getFacturaDetails(factura!!) }
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(facturaData) { detail ->
+                        DetailItem(label = detail.first, value = detail.second)
+                    }
+                    item {
+                        ActionButtons(
+                            factura = factura!!,
+                            onBackClick = { navController.popBackStack() },
+                            onEditClick = {
+                                viewModel.editFactura(factura!!)
+                                navController.navigate("facturaForm")
+                            },
+                            onDeleteClick = { showDeleteDialog = true }
+                        )
+                    }
+                }
+
+                if (showDeleteDialog) {
+                    ConfirmDeleteDialog(
+                        onConfirm = {
+                            viewModel.deleteFactura(factura!!)
+                            showDeleteDialog = false
+                            navController.popBackStack()
                         },
-                        onDeleteClick = { showDeleteDialog = true }
+                        onDismiss = { showDeleteDialog = false }
                     )
                 }
-            }
-
-            if (showDeleteDialog) {
-                ConfirmDeleteDialog(
-                    onConfirm = {
-                        viewModel.deleteFactura(factura!!)
-                        showDeleteDialog = false
-                        navController.popBackStack()
-                    },
-                    onDismiss = { showDeleteDialog = false }
-                )
             }
         }
     }
 }
+
 
 /**
  * Crea una lista de pares (label, value) con la información de la factura.
