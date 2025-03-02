@@ -59,6 +59,7 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
             try {
                 repository.deleteFactura(factura.id)
                 setUiMessage("Factura eliminada con éxito")
+                fetchFacturas() // 🔥 Recargar facturas tras eliminar
             } catch (e: Exception) {
                 Log.e("FacturaViewModel", "Error al eliminar la factura", e)
                 setUiMessage("Error al eliminar la factura: ${e.message}")
@@ -66,8 +67,12 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
         }
     }
 
+
     fun saveFactura(factura: FacturaEntity) {
+        Log.d("FacturaViewModel", "🟢 Intentando guardar factura: $factura")
+
         if (factura.emisor.isBlank() || factura.receptor.isBlank()) {
+            Log.e("FacturaViewModel", "❌ Emisor y Receptor son obligatorios")
             setUiMessage("Los campos Emisor y Receptor son obligatorios.")
             return
         }
@@ -75,18 +80,25 @@ class FacturaViewModel(private val repository: FacturaRepository) : ViewModel() 
         viewModelScope.launch {
             try {
                 if (factura.id.isEmpty()) {
+                    Log.d("FacturaViewModel", "📌 Nueva factura, llamando a addFactura()")
                     repository.addFactura(factura)
                     setUiMessage("Factura creada con éxito")
                 } else {
+                    Log.d("FacturaViewModel", "📌 Editando factura existente, llamando a updateFactura()")
                     repository.updateFactura(factura)
                     setUiMessage("Factura actualizada con éxito")
                 }
+                fetchFacturas() // 🔥 Forzar recarga después de añadir una factura
+
             } catch (e: Exception) {
-                Log.e("FacturaViewModel", "Error al guardar la factura", e)
+                Log.e("FacturaViewModel", "❌ Error al guardar la factura", e)
                 setUiMessage("Error al guardar la factura: ${e.message}")
             }
         }
     }
+
+
+
 
     fun clearFacturasOnLogout() { // 🚀 Evita que Firestore siga ejecutando consultas tras logout
         _facturas.value = emptyList()

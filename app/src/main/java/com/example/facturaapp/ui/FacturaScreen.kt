@@ -36,10 +36,8 @@ fun FacturaScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Observamos si el usuario está autenticado
     val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsState(initial = false)
 
-    // Redirigir al login si el usuario no está autenticado
     LaunchedEffect(isUserLoggedIn) {
         if (!isUserLoggedIn) {
             navController.navigate("login") {
@@ -57,11 +55,10 @@ fun FacturaScreen(
     }
 
     val safeFacturaId = facturaId?.takeIf { it.isNotBlank() }
-    val facturaToEdit by viewModel.getFacturaById(safeFacturaId ?: "").collectAsState(initial = null)
+    val facturaToEdit by viewModel.facturaToEdit.collectAsState()
     val uiMessage by viewModel.uiMessage.collectAsState()
 
-    // Estados de los campos
-    var numeroFactura by rememberSaveable { mutableStateOf("") }
+    var numeroFactura by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
     var fechaEmision by rememberSaveable { mutableStateOf("") }
     var emisorEmpresa by rememberSaveable { mutableStateOf("") }
     var emisorNIF by rememberSaveable { mutableStateOf("") }
@@ -74,20 +71,37 @@ fun FacturaScreen(
     var tipoFactura by rememberSaveable { mutableStateOf("Emitida") }
 
     LaunchedEffect(facturaToEdit) {
-        facturaToEdit?.let { factura ->
-            numeroFactura = factura.numeroFactura
-            fechaEmision = factura.fechaEmision
-            emisorEmpresa = factura.emisor
-            emisorNIF = factura.emisorNIF
-            emisorDireccion = factura.emisorDireccion
-            receptorCliente = factura.receptor
-            receptorNIF = factura.receptorNIF
-            receptorDireccion = factura.receptorDireccion
-            baseImponible = factura.baseImponible.toString()
-            ivaPorcentaje = ((factura.iva / factura.baseImponible) * 100).toInt().toString()
-            tipoFactura = factura.tipoFactura
+        if (facturaToEdit == null) {
+            // ✅ Limpiar los campos al crear una nueva factura
+            numeroFactura = UUID.randomUUID().toString()
+            fechaEmision = ""
+            emisorEmpresa = ""
+            emisorNIF = ""
+            emisorDireccion = ""
+            receptorCliente = ""
+            receptorNIF = ""
+            receptorDireccion = ""
+            baseImponible = ""
+            ivaPorcentaje = "0"
+            tipoFactura = "Emitida"
+        } else {
+            // ✅ Precargar los datos de la factura si estamos editando
+            facturaToEdit?.let { factura ->
+                numeroFactura = factura.numeroFactura
+                fechaEmision = factura.fechaEmision
+                emisorEmpresa = factura.emisor
+                emisorNIF = factura.emisorNIF
+                emisorDireccion = factura.emisorDireccion
+                receptorCliente = factura.receptor
+                receptorNIF = factura.receptorNIF
+                receptorDireccion = factura.receptorDireccion
+                baseImponible = factura.baseImponible.toString()
+                ivaPorcentaje = ((factura.iva / factura.baseImponible) * 100).toInt().toString()
+                tipoFactura = factura.tipoFactura
+            }
         }
     }
+
 
     LaunchedEffect(uiMessage) {
         uiMessage?.let {
@@ -124,7 +138,7 @@ fun FacturaScreen(
                 handleSaveFactura(
                     numeroFactura, fechaEmision, emisorEmpresa, emisorNIF, emisorDireccion,
                     receptorCliente, receptorNIF, receptorDireccion, baseDouble, ivaCalculado,
-                    total, tipoFactura, facturaToEdit, viewModel
+                    total, tipoFactura, facturaToEdit, viewModel, navController
                 )
             }) {
                 Icon(imageVector = Icons.Default.Check, contentDescription = "Guardar Factura")
@@ -138,6 +152,17 @@ fun FacturaScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item { SectionHeader("Información de la Factura") }
+            item {
+                OutlinedTextField(
+                    value = numeroFactura,
+                    onValueChange = {},
+                    label = { Text("Número de Factura") },
+                    enabled = false, // 🔥 Evita que el usuario lo edite
+                    modifier = Modifier.fillMaxWidth().padding(8.dp)
+                )
+            }
+
             item { SectionHeader("Información del Emisor") }
             item { FieldCard("Emisor - Empresa", emisorEmpresa) { emisorEmpresa = it } }
             item { FieldCard("Emisor - NIF", emisorNIF) { emisorNIF = it } }
@@ -164,23 +189,26 @@ fun FacturaScreen(
     }
 }
 
+
+
 /**
  * Guarda o edita una factura de manera optimizada.
  */
 fun handleSaveFactura(
     numeroFactura: String, fechaEmision: String, emisor: String, emisorNIF: String, emisorDireccion: String,
     receptor: String, receptorNIF: String, receptorDireccion: String, baseImponible: Double,
-    iva: Double, total: Double, tipoFactura: String, facturaToEdit: FacturaEntity?, viewModel: FacturaViewModel
+    iva: Double, total: Double, tipoFactura: String, facturaToEdit: FacturaEntity?, viewModel: FacturaViewModel, navController: NavController
 ) {
-    Log.d("FacturaDebug", "Número: $numeroFactura, Emisor: $emisor, Receptor: $receptor")
+    Log.d("FacturaDebug", "📌 Intentando guardar factura con Número: $numeroFactura, Emisor: $emisor, Receptor: $receptor")
 
-    if (numeroFactura.isBlank() || emisor.isBlank() || receptor.isBlank()) {
-        viewModel.setUiMessage("Los campos Número de Factura, Emisor y Receptor son obligatorios.")
+    if (numeroFactura.isBlank()) {
+        Log.e("FacturaDebug", "❌ Error: El número de factura es obligatorio.")
+        viewModel.setUiMessage("El número de factura es obligatorio.")
         return
     }
 
     val factura = facturaToEdit?.copy(
-        numeroFactura = numeroFactura,
+        numeroFactura = numeroFactura, // ✅ Usamos siempre el número correcto
         fechaEmision = fechaEmision,
         emisor = emisor,
         emisorNIF = emisorNIF,
@@ -192,10 +220,31 @@ fun handleSaveFactura(
         iva = iva,
         total = total,
         tipoFactura = tipoFactura
-    ) ?: FacturaEntity("", numeroFactura, fechaEmision, emisor, emisorNIF, emisorDireccion, receptor, receptorNIF, receptorDireccion, baseImponible, iva, total, tipoFactura)
+    ) ?: FacturaEntity(
+        id = UUID.randomUUID().toString(),
+        numeroFactura = if (numeroFactura.isBlank()) UUID.randomUUID().toString() else numeroFactura,
+        fechaEmision = fechaEmision,
+        emisor = emisor,
+        emisorNIF = emisorNIF,
+        emisorDireccion = emisorDireccion,
+        receptor = receptor,
+        receptorNIF = receptorNIF,
+        receptorDireccion = receptorDireccion,
+        baseImponible = baseImponible,
+        iva = iva,
+        total = total,
+        tipoFactura = tipoFactura
+    )
 
     viewModel.saveFactura(factura)
+
+    viewModel.editFactura(null)
+
+    navController.navigate("list") {
+        popUpTo("facturaForm") { inclusive = true }
+    }
 }
+
 
 @Composable
 fun DatePickerField(label: String, value: String, onValueChange: (String) -> Unit) {

@@ -28,8 +28,11 @@ fun LoginScreen(
     var isSubmitting by remember { mutableStateOf(false) }
 
     LaunchedEffect(authState) {
-        authState?.let { onLoginSuccess() }
+        if (authState != null) {
+            onLoginSuccess()
+        }
     }
+
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -73,6 +76,7 @@ fun LoginScreen(
             Button(
                 onClick = {
                     if (email.isBlank() || password.isBlank()) {
+                        scope.launch { snackbarHostState.showSnackbar("Todos los campos son obligatorios") }
                         scope.launch { snackbarHostState.showSnackbar("Todos los campos son obligatorios") }
                     } else if (password.length < 6) {
                         scope.launch { snackbarHostState.showSnackbar("La contraseña debe tener al menos 6 caracteres.") }

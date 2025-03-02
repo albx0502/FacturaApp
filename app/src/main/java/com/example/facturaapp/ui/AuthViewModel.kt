@@ -13,7 +13,7 @@ class AuthViewModel(
     private val repository: AuthRepository,
 ) : ViewModel() {
 
-    private val _authState = MutableStateFlow<FirebaseUser?>(repository.getCurrentUser())
+    private val _authState = MutableStateFlow<FirebaseUser?>(null)
     val authState: StateFlow<FirebaseUser?> = _authState.asStateFlow()
 
     val isUserLoggedIn: StateFlow<Boolean> = _authState.map { it != null }.stateIn(
@@ -30,7 +30,9 @@ class AuthViewModel(
     }
 
     init {
-        FirebaseAuth.getInstance().addAuthStateListener(authListener)
+        FirebaseAuth.getInstance().addAuthStateListener { firebaseAuth ->
+            _authState.value = firebaseAuth.currentUser
+        }
     }
 
     fun clearError() {
@@ -55,13 +57,17 @@ class AuthViewModel(
     fun signIn(email: String, password: String) {
         viewModelScope.launch {
             try {
-                repository.signInWithEmail(email, password)
-                // 🔹 NO actualizamos `_authState` aquí, Firebase lo hará automáticamente
+                repository.signInWithEmail(email, password).onSuccess {
+                    _authState.value = repository.getCurrentUser() // 🔥 Asegura que authState se actualiza correctamente
+                }.onFailure { e ->
+                    _errorMessage.value = traducirErrorFirebase(e.message)
+                }
             } catch (e: Exception) {
                 _errorMessage.value = traducirErrorFirebase(e.message)
             }
         }
     }
+
 
     fun signOut() {
         viewModelScope.launch {

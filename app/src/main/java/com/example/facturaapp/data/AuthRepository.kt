@@ -33,15 +33,20 @@ class AuthRepository {
             try {
                 val result = auth.signInWithEmailAndPassword(email, password).await()
 
-                // 🔹 FORZAMOS la generación del token de autenticación
-                result.user?.getIdToken(true)?.await()
+                // 🔹 Verifica si el usuario existe
+                val user = result.user ?: return@withContext Result.failure(Exception("No se pudo autenticar el usuario."))
+
+                // 🔹 Refresca el token de autenticación
+                user.getIdToken(true).await()
 
                 Result.success(Unit)
             } catch (e: Exception) {
+                Log.e("AuthRepository", "Error al iniciar sesión: ${e.message}")
                 Result.failure(e)
             }
         }
     }
+
 
 
     fun signOut(onSignOut: () -> Unit) {
@@ -51,8 +56,10 @@ class AuthRepository {
 
 
     fun getCurrentUser(): FirebaseUser? {
-        return auth.currentUser
+        return auth.currentUser ?: auth.currentUser?.reload()?.run { auth.currentUser }
     }
+
+
     fun isUserLoggedIn(): Boolean {
         val isLoggedIn = auth.currentUser != null
         Log.d("AuthRepository", "Usuario autenticado: $isLoggedIn")

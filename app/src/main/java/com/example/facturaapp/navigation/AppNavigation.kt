@@ -22,19 +22,17 @@ fun AppNavigation(
     // ✅ Manejo de navegación basado en la autenticación
     LaunchedEffect(currentUser) {
         val currentRoute = navController.currentBackStackEntry?.destination?.route
-        when {
-            currentUser == null && currentRoute != "login" -> {
-                navController.navigate("login") {
-                    popUpTo(0) // 🔹 Elimina historial para evitar regresar con "atrás"
-                }
+        if (currentUser == null && currentRoute != "login") {
+            navController.navigate("login") {
+                popUpTo("list") { inclusive = true } // 🔹 Evita que el usuario vuelva atrás
             }
-            currentUser != null && currentRoute in listOf("login", "register") -> {
-                navController.navigate("list") {
-                    popUpTo("login") { inclusive = true } // 🔹 Limpia historial solo si viene de login
-                }
+        } else if (currentUser != null && currentRoute == "login") {
+            navController.navigate("list") {
+                popUpTo("login") { inclusive = true } // 🔹 Limpia historial solo si viene de login
             }
         }
     }
+
 
     NavHost(navController = navController, startDestination = if (currentUser != null) "list" else "login") {
 

@@ -37,10 +37,11 @@ data class FacturaEntity(
             "receptor" to receptor,
             "receptorNIF" to receptorNIF,
             "receptorDireccion" to receptorDireccion,
-            "baseImponible" to baseImponible,
-            "iva" to iva,
-            "total" to total,
+            "baseImponible" to baseImponible.coerceAtLeast(0.0),
+            "iva" to iva.coerceAtLeast(0.0),
+            "total" to total.coerceAtLeast(0.0),
             "tipoFactura" to tipoFactura
         )
     }
+
 }

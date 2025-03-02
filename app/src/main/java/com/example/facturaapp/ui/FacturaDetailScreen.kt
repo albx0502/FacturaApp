@@ -75,13 +75,14 @@ fun FacturaDetailScreen(
                         ActionButtons(
                             factura = factura!!,
                             onBackClick = { navController.popBackStack() },
-                            onEditClick = {
-                                viewModel.editFactura(factura!!)
-                                navController.navigate("facturaForm")
+                            onEditClick = { factura ->
+                                viewModel.editFactura(factura) // ✅ Precargar la factura antes de editar
+                                navController.navigate("facturaForm/${factura.id}") // ✅ Pasamos el ID correctamente
                             },
                             onDeleteClick = { showDeleteDialog = true }
                         )
                     }
+
                 }
 
                 if (showDeleteDialog) {
