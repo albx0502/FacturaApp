@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun AppNavigation(
@@ -19,20 +20,21 @@ fun AppNavigation(
     val navController = rememberNavController()
     val currentUser by authViewModel.authState.collectAsState()
 
-    // ✅ Manejo de navegación basado en la autenticación
     LaunchedEffect(currentUser) {
-        val currentRoute = navController.currentBackStackEntry?.destination?.route
-        if (currentUser == null && currentRoute != "login") {
+        println("🚀 Evaluando estado del usuario: ${currentUser?.uid ?: "null"}")
+
+        if (currentUser == null) {
             navController.navigate("login") {
-                popUpTo("list") { inclusive = true } // 🔹 Evita que el usuario vuelva atrás
+                popUpTo("list") { inclusive = true }
             }
-        } else if (currentUser != null && currentRoute == "login") {
+        } else {
+            println("✅ Usuario autenticado, cargando facturas...")
+            facturaViewModel.fetchFacturas()  // 🔥 Cargar facturas tras login
             navController.navigate("list") {
-                popUpTo("login") { inclusive = true } // 🔹 Limpia historial solo si viene de login
+                popUpTo("login") { inclusive = true }
             }
         }
     }
-
 
     NavHost(navController = navController, startDestination = if (currentUser != null) "list" else "login") {
 

@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.facturaapp.data.FacturaEntity
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
 import java.text.NumberFormat
 import java.util.*
@@ -31,13 +33,15 @@ fun FacturaListScreen(
     val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsStateWithLifecycle()
 
     LaunchedEffect(isUserLoggedIn) {
-        if (!isUserLoggedIn) {
+        delay(500) // ⏳ Esperar antes de navegar
+        if (!isUserLoggedIn && FirebaseAuth.getInstance().currentUser == null) {
             navController.navigate("login") {
                 popUpTo("list") { inclusive = true }
                 launchSingleTop = true
             }
         }
     }
+
 
     val facturas by viewModel.facturas.collectAsStateWithLifecycle()
 

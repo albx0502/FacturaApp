@@ -28,11 +28,13 @@ fun LoginScreen(
     var isSubmitting by remember { mutableStateOf(false) }
 
     LaunchedEffect(authState) {
-        if (authState != null) {
-            onLoginSuccess()
+        authState?.let { user ->
+            if (user != null) {
+                println("✅ Usuario autenticado, redirigiendo a lista...")
+                onLoginSuccess()
+            }
         }
     }
-
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -77,14 +79,12 @@ fun LoginScreen(
                 onClick = {
                     if (email.isBlank() || password.isBlank()) {
                         scope.launch { snackbarHostState.showSnackbar("Todos los campos son obligatorios") }
-                        scope.launch { snackbarHostState.showSnackbar("Todos los campos son obligatorios") }
                     } else if (password.length < 6) {
                         scope.launch { snackbarHostState.showSnackbar("La contraseña debe tener al menos 6 caracteres.") }
                     } else {
                         isSubmitting = true
-                        scope.launch {
-                            authViewModel.signIn(email, password)
-                        }
+                        println("📩 Iniciando sesión con: $email")
+                        authViewModel.signIn(email, password)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),

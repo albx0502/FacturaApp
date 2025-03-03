@@ -8,12 +8,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class AuthViewModel(
     private val repository: AuthRepository,
 ) : ViewModel() {
 
-    private val _authState = MutableStateFlow<FirebaseUser?>(null)
+    private val _authState = MutableStateFlow<FirebaseUser?>(FirebaseAuth.getInstance().currentUser)
     val authState: StateFlow<FirebaseUser?> = _authState.asStateFlow()
 
     val isUserLoggedIn: StateFlow<Boolean> = _authState.map { it != null }.stateIn(
@@ -26,13 +27,15 @@ class AuthViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-        _authState.value = firebaseAuth.currentUser // Se actualiza automáticamente con Firebase
+        val user = firebaseAuth.currentUser
+        _authState.value = user
+        println("🔥 Estado actualizado: Usuario = ${user?.uid ?: "null"}")
     }
 
+
+
     init {
-        FirebaseAuth.getInstance().addAuthStateListener { firebaseAuth ->
-            _authState.value = firebaseAuth.currentUser
-        }
+        FirebaseAuth.getInstance().addAuthStateListener(authListener)
     }
 
     fun clearError() {
@@ -47,7 +50,7 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 repository.signUpWithEmail(email, password)
-                // 🔹 NO actualizamos `_authState` aquí, Firebase lo hará automáticamente
+
             } catch (e: Exception) {
                 _errorMessage.value = traducirErrorFirebase(e.message)
             }
@@ -56,26 +59,31 @@ class AuthViewModel(
 
     fun signIn(email: String, password: String) {
         viewModelScope.launch {
-            try {
-                repository.signInWithEmail(email, password).onSuccess {
-                    _authState.value = repository.getCurrentUser() // 🔥 Asegura que authState se actualiza correctamente
-                }.onFailure { e ->
-                    _errorMessage.value = traducirErrorFirebase(e.message)
-                }
-            } catch (e: Exception) {
+            repository.signInWithEmail(email, password).onSuccess {
+                FirebaseAuth.getInstance().currentUser?.reload()?.await() // 🔥 Esperar recarga
+                val user = FirebaseAuth.getInstance().currentUser
+                _authState.value = user
+                println("✅ Inicio de sesión exitoso, usuario: ${user?.uid}")
+            }.onFailure { e ->
                 _errorMessage.value = traducirErrorFirebase(e.message)
             }
         }
     }
 
 
+
+
+
+
     fun signOut() {
         viewModelScope.launch {
             repository.signOut {
-                _authState.value = null // Se actualiza cuando se cierra sesión
+                _authState.value = null
+                println("🚪 Usuario cerró sesión")
             }
         }
     }
+
 
 
     private fun traducirErrorFirebase(error: String?): String {
