@@ -33,7 +33,7 @@ fun FacturaListScreen(
     val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsStateWithLifecycle()
 
     LaunchedEffect(isUserLoggedIn) {
-        delay(500) // ⏳ Esperar antes de navegar
+        delay(500)
         if (!isUserLoggedIn && FirebaseAuth.getInstance().currentUser == null) {
             navController.navigate("login") {
                 popUpTo("list") { inclusive = true }
@@ -41,7 +41,6 @@ fun FacturaListScreen(
             }
         }
     }
-
 
     val facturas by viewModel.facturas.collectAsStateWithLifecycle()
 
@@ -94,7 +93,6 @@ fun FacturaListScreen(
     }
 }
 
-
 @Composable
 fun EmptyStateMessage() {
     Box(
@@ -110,7 +108,7 @@ fun FacturaCard(
     factura: FacturaEntity,
     onFacturaClick: (FacturaEntity) -> Unit
 ) {
-    val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")) // 🚀 Optimización
+    val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES"))
     val totalFormatted = decimalFormat.format(factura.total)
 
     Card(
@@ -133,13 +131,12 @@ fun FacturaCard(
                 text = "Receptor: ${factura.receptor}",
                 style = MaterialTheme.typography.bodyMedium
             )
-            // 🔹 Se corrigió: `align(Alignment.End)` ahora dentro de `Modifier`
             Text(
                 text = "Total: $totalFormatted €",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.End) // ✅ Ahora funciona correctamente
+                    .align(Alignment.End)
             )
         }
     }

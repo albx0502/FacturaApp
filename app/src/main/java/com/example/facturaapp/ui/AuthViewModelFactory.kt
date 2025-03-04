@@ -4,9 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.facturaapp.data.AuthRepository
 
-/**
- * Factory para crear una instancia de AuthViewModel con AuthRepository inyectado.
- */
 class AuthViewModelFactory(
     private val authRepository: AuthRepository
 ) : ViewModelProvider.Factory {

@@ -34,10 +34,8 @@ class AuthRepository {
                 val result = auth.signInWithEmailAndPassword(email, password).await()
                 val user = result.user ?: return@withContext Result.failure(Exception("No se pudo autenticar el usuario."))
 
-                // 🔥 Solución: Forzar recarga del usuario
                 user.reload().await()
 
-                // 🔥 Solución: Comprobar nuevamente si el usuario sigue autenticado
                 if (auth.currentUser == null) {
                     return@withContext Result.failure(Exception("El usuario fue desconectado inmediatamente después del login."))
                 }
@@ -50,27 +48,19 @@ class AuthRepository {
         }
     }
 
-
-
-
     fun signOut(onSignOut: () -> Unit) {
         auth.signOut()
         onSignOut()
     }
-
 
     fun getCurrentUser(): FirebaseUser? {
         auth.currentUser?.reload()
         return auth.currentUser
     }
 
-
-
     fun isUserLoggedIn(): Boolean {
         val isLoggedIn = auth.currentUser != null
         Log.d("AuthRepository", "Usuario autenticado: $isLoggedIn")
         return isLoggedIn
     }
-
-
 }

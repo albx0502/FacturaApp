@@ -72,7 +72,6 @@ fun FacturaScreen(
 
     LaunchedEffect(facturaToEdit) {
         if (facturaToEdit == null) {
-            // ✅ Limpiar los campos al crear una nueva factura
             numeroFactura = UUID.randomUUID().toString()
             fechaEmision = ""
             emisorEmpresa = ""
@@ -85,7 +84,6 @@ fun FacturaScreen(
             ivaPorcentaje = "0"
             tipoFactura = "Emitida"
         } else {
-            // ✅ Precargar los datos de la factura si estamos editando
             facturaToEdit?.let { factura ->
                 numeroFactura = factura.numeroFactura
                 fechaEmision = factura.fechaEmision
@@ -101,7 +99,6 @@ fun FacturaScreen(
             }
         }
     }
-
 
     LaunchedEffect(uiMessage) {
         uiMessage?.let {
@@ -158,7 +155,7 @@ fun FacturaScreen(
                     value = numeroFactura,
                     onValueChange = {},
                     label = { Text("Número de Factura") },
-                    enabled = false, // 🔥 Evita que el usuario lo edite
+                    enabled = false,
                     modifier = Modifier.fillMaxWidth().padding(8.dp)
                 )
             }
@@ -189,26 +186,21 @@ fun FacturaScreen(
     }
 }
 
-
-
-/**
- * Guarda o edita una factura de manera optimizada.
- */
 fun handleSaveFactura(
     numeroFactura: String, fechaEmision: String, emisor: String, emisorNIF: String, emisorDireccion: String,
     receptor: String, receptorNIF: String, receptorDireccion: String, baseImponible: Double,
     iva: Double, total: Double, tipoFactura: String, facturaToEdit: FacturaEntity?, viewModel: FacturaViewModel, navController: NavController
 ) {
-    Log.d("FacturaDebug", "📌 Intentando guardar factura con Número: $numeroFactura, Emisor: $emisor, Receptor: $receptor")
+    Log.d("FacturaDebug", "Intentando guardar factura con Número: $numeroFactura, Emisor: $emisor, Receptor: $receptor")
 
     if (numeroFactura.isBlank()) {
-        Log.e("FacturaDebug", "❌ Error: El número de factura es obligatorio.")
+        Log.e("FacturaDebug", "Error: El número de factura es obligatorio.")
         viewModel.setUiMessage("El número de factura es obligatorio.")
         return
     }
 
     val factura = facturaToEdit?.copy(
-        numeroFactura = numeroFactura, // ✅ Usamos siempre el número correcto
+        numeroFactura = numeroFactura,
         fechaEmision = fechaEmision,
         emisor = emisor,
         emisorNIF = emisorNIF,
@@ -235,16 +227,12 @@ fun handleSaveFactura(
         total = total,
         tipoFactura = tipoFactura
     )
-
     viewModel.saveFactura(factura)
-
     viewModel.editFactura(null)
-
     navController.navigate("list") {
         popUpTo("facturaForm") { inclusive = true }
     }
 }
-
 
 @Composable
 fun DatePickerField(label: String, value: String, onValueChange: (String) -> Unit) {

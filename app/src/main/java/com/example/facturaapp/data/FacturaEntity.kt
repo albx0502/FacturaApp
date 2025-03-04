@@ -43,5 +43,4 @@ data class FacturaEntity(
             "tipoFactura" to tipoFactura
         )
     }
-
 }

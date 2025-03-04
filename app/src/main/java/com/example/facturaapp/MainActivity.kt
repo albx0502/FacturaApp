@@ -26,7 +26,6 @@ class MainActivity : ComponentActivity() {
                 val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository))
                 val facturaViewModel: FacturaViewModel = viewModel(factory = FacturaViewModelFactory(facturaRepository))
 
-
                 AppNavigation(
                     facturaViewModel = facturaViewModel,
                     authViewModel = authViewModel

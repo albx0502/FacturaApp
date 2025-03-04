@@ -22,13 +22,13 @@ class FacturaRepository {
     fun getAllFacturas(): Flow<List<FacturaEntity>> = callbackFlow {
         val user = auth.currentUser
         if (user == null) {
-            Log.w("FacturaRepository", "❌ Usuario no autenticado - No se pueden obtener facturas.")
+            Log.w("FacturaRepository", "Usuario no autenticado - No se pueden obtener facturas.")
             trySend(emptyList()).isSuccess
             close()
             return@callbackFlow
         }
 
-        Log.d("FacturaRepository", "🔍 Buscando facturas para UID: ${user.uid}")
+        Log.d("FacturaRepository", "Buscando facturas para UID: ${user.uid}")
 
         val facturaCollection = firestore.collection("usuarios")
             .document(user.uid)
@@ -36,7 +36,7 @@ class FacturaRepository {
 
         val listener = facturaCollection.addSnapshotListener { snapshot, e ->
             if (e != null) {
-                Log.e("FacturaRepository", "❌ Error obteniendo facturas: ${e.message}")
+                Log.e("FacturaRepository", "Error obteniendo facturas: ${e.message}")
                 close(e)
                 return@addSnapshotListener
             }
@@ -45,9 +45,9 @@ class FacturaRepository {
                 doc.toObject(FacturaEntity::class.java)?.copy(id = doc.id)
             } ?: emptyList()
 
-            Log.d("FacturaRepository", "📌 Facturas obtenidas: ${facturas.size}")
+            Log.d("FacturaRepository", "Facturas obtenidas: ${facturas.size}")
             if (facturas.isEmpty()) {
-                Log.w("FacturaRepository", "⚠️ No se encontraron facturas en Firestore.")
+                Log.w("FacturaRepository", "No se encontraron facturas en Firestore.")
             }
 
             trySend(facturas).isSuccess
@@ -56,8 +56,6 @@ class FacturaRepository {
         listeners.add(listener)
         awaitClose { listener.remove() }
     }.flowOn(Dispatchers.IO)
-
-
 
     fun getFacturaById(facturaId: String): Flow<FacturaEntity?> = callbackFlow {
         if (facturaId.isBlank()) {
@@ -96,11 +94,11 @@ class FacturaRepository {
     suspend fun addFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
         val user = auth.currentUser
         if (user == null) {
-            Log.e("FacturaRepository", "❌ Usuario no autenticado, no se puede añadir factura.")
+            Log.e("FacturaRepository", "Usuario no autenticado, no se puede añadir factura.")
             throw Exception("Usuario no autenticado")
         }
 
-        Log.d("FacturaRepository", "✅ Usuario autenticado: ${user.uid}")
+        Log.d("FacturaRepository", "Usuario autenticado: ${user.uid}")
 
         val facturaCollection = firestore.collection("usuarios")
             .document(user.uid)
@@ -108,33 +106,29 @@ class FacturaRepository {
 
         try {
             if (factura.numeroFactura.isBlank()) {
-                Log.e("FacturaRepository", "❌ Número de factura vacío, no se guarda.")
+                Log.e("FacturaRepository", "Número de factura vacío, no se guarda.")
                 throw Exception("El número de factura no puede estar vacío.")
             }
 
             val docRef = facturaCollection.document()
             val newFactura = factura.copy(id = docRef.id)
 
-            Log.d("FacturaRepository", "📌 Guardando factura en Firestore: ${newFactura.toMap()}")
+            Log.d("FacturaRepository", "Guardando factura en Firestore: ${newFactura.toMap()}")
 
             docRef.set(newFactura.toMap()).await()
 
             val snapshot = docRef.get().await()
             if (snapshot.exists()) {
-                Log.d("FacturaRepository", "✅ Factura guardada correctamente en Firestore: ${snapshot.data}")
+                Log.d("FacturaRepository", "Factura guardada correctamente en Firestore: ${snapshot.data}")
             } else {
-                Log.e("FacturaRepository", "❌ Error: La factura no se guardó en Firestore.")
+                Log.e("FacturaRepository", "Error: La factura no se guardó en Firestore.")
             }
 
         } catch (e: Exception) {
-            Log.e("FacturaRepository", "❌ Error al guardar factura: ${e.message}")
+            Log.e("FacturaRepository", "Error al guardar factura: ${e.message}")
             throw Exception("Error al guardar factura: ${e.message}")
         }
     }
-
-
-
-
 
     suspend fun updateFactura(factura: FacturaEntity) = withContext(Dispatchers.IO) {
         val user = auth.currentUser ?: throw Exception("Usuario no autenticado")

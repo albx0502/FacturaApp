@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
@@ -30,7 +29,7 @@ fun LoginScreen(
     LaunchedEffect(authState) {
         authState?.let { user ->
             if (user != null) {
-                println("✅ Usuario autenticado, redirigiendo a lista...")
+                println("Usuario autenticado, redirigiendo a lista...")
                 onLoginSuccess()
             }
         }
@@ -40,7 +39,7 @@ fun LoginScreen(
         errorMessage?.let {
             scope.launch { snackbarHostState.showSnackbar(it) }
             authViewModel.clearError()
-            isSubmitting = false // ✅ Restablece el estado de carga
+            isSubmitting = false
         }
     }
 
@@ -83,7 +82,7 @@ fun LoginScreen(
                         scope.launch { snackbarHostState.showSnackbar("La contraseña debe tener al menos 6 caracteres.") }
                     } else {
                         isSubmitting = true
-                        println("📩 Iniciando sesión con: $email")
+                        println("Iniciando sesión con: $email")
                         authViewModel.signIn(email, password)
                     }
                 },

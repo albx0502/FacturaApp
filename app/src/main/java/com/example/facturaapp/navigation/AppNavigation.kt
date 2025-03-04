@@ -21,15 +21,15 @@ fun AppNavigation(
     val currentUser by authViewModel.authState.collectAsState()
 
     LaunchedEffect(currentUser) {
-        println("🚀 Evaluando estado del usuario: ${currentUser?.uid ?: "null"}")
+        println("Evaluando estado del usuario: ${currentUser?.uid ?: "null"}")
 
         if (currentUser == null) {
             navController.navigate("login") {
                 popUpTo("list") { inclusive = true }
             }
         } else {
-            println("✅ Usuario autenticado, cargando facturas...")
-            facturaViewModel.fetchFacturas()  // 🔥 Cargar facturas tras login
+            println("Usuario autenticado, cargando facturas...")
+            facturaViewModel.fetchFacturas()
             navController.navigate("list") {
                 popUpTo("login") { inclusive = true }
             }
@@ -38,7 +38,6 @@ fun AppNavigation(
 
     NavHost(navController = navController, startDestination = if (currentUser != null) "list" else "login") {
 
-        // ✅ Pantalla de Login
         composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -47,7 +46,6 @@ fun AppNavigation(
             )
         }
 
-        // ✅ Pantalla de Registro
         composable("register") {
             RegisterScreen(
                 authViewModel = authViewModel,
@@ -55,7 +53,6 @@ fun AppNavigation(
             )
         }
 
-        // ✅ Pantalla de Listado de Facturas
         composable("list") {
             FacturaListScreen(
                 viewModel = facturaViewModel,
@@ -68,7 +65,6 @@ fun AppNavigation(
             )
         }
 
-        // ✅ Pantalla de Detalle de Factura
         composable(
             "facturaDetail/{facturaId}",
             arguments = listOf(navArgument("facturaId") { type = NavType.StringType })
@@ -77,18 +73,16 @@ fun AppNavigation(
             FacturaDetailScreen(
                 facturaId = facturaId,
                 viewModel = facturaViewModel,
-                authViewModel = authViewModel, // <-- Asegúrate de pasar authViewModel aquí
+                authViewModel = authViewModel,
                 navController = navController
             )
         }
 
-
-        // ✅ Pantalla de Creación/Edición de Factura
         composable("facturaForm") {
             FacturaScreen(
                 viewModel = facturaViewModel,
-                authViewModel = authViewModel, // <-- Agrega esto
-                navController = navController, // <-- Agrega esto
+                authViewModel = authViewModel,
+                navController = navController,
                 facturaId = null,
                 onNavigateToList = { navController.navigate("list") }
             )
@@ -104,12 +98,11 @@ fun AppNavigation(
             val facturaId = backStackEntry.arguments?.getString("facturaId")
             FacturaScreen(
                 viewModel = facturaViewModel,
-                authViewModel = authViewModel, // <-- Agrega esto
-                navController = navController, // <-- Agrega esto
+                authViewModel = authViewModel,
+                navController = navController,
                 facturaId = facturaId,
                 onNavigateToList = { navController.navigate("list") }
             )
         }
-
     }
 }

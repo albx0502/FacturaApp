@@ -29,10 +29,8 @@ class AuthViewModel(
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val user = firebaseAuth.currentUser
         _authState.value = user
-        println("🔥 Estado actualizado: Usuario = ${user?.uid ?: "null"}")
+        println("Estado actualizado: Usuario = ${user?.uid ?: "null"}")
     }
-
-
 
     init {
         FirebaseAuth.getInstance().addAuthStateListener(authListener)
@@ -63,28 +61,21 @@ class AuthViewModel(
                 FirebaseAuth.getInstance().currentUser?.reload()?.await() // 🔥 Esperar recarga
                 val user = FirebaseAuth.getInstance().currentUser
                 _authState.value = user
-                println("✅ Inicio de sesión exitoso, usuario: ${user?.uid}")
+                println("Inicio de sesión exitoso, usuario: ${user?.uid}")
             }.onFailure { e ->
                 _errorMessage.value = traducirErrorFirebase(e.message)
             }
         }
     }
 
-
-
-
-
-
     fun signOut() {
         viewModelScope.launch {
             repository.signOut {
                 _authState.value = null
-                println("🚪 Usuario cerró sesión")
+                println("Usuario cerró sesión")
             }
         }
     }
-
-
 
     private fun traducirErrorFirebase(error: String?): String {
         return when {

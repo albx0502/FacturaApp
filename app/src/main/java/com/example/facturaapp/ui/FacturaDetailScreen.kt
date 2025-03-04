@@ -76,13 +76,12 @@ fun FacturaDetailScreen(
                             factura = factura!!,
                             onBackClick = { navController.popBackStack() },
                             onEditClick = { factura ->
-                                viewModel.editFactura(factura) // ✅ Precargar la factura antes de editar
-                                navController.navigate("facturaForm/${factura.id}") // ✅ Pasamos el ID correctamente
+                                viewModel.editFactura(factura)
+                                navController.navigate("facturaForm/${factura.id}")
                             },
                             onDeleteClick = { showDeleteDialog = true }
                         )
                     }
-
                 }
 
                 if (showDeleteDialog) {
@@ -100,10 +99,6 @@ fun FacturaDetailScreen(
     }
 }
 
-
-/**
- * Crea una lista de pares (label, value) con la información de la factura.
- */
 fun getFacturaDetails(factura: FacturaEntity): List<Pair<String, String>> {
     val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES")).apply {
         minimumFractionDigits = 2
@@ -124,9 +119,6 @@ fun getFacturaDetails(factura: FacturaEntity): List<Pair<String, String>> {
     )
 }
 
-/**
- * Componente para mostrar un elemento de detalle con estilo.
- */
 @Composable
 fun DetailItem(label: String, value: String) {
     Card(
@@ -140,9 +132,6 @@ fun DetailItem(label: String, value: String) {
     }
 }
 
-/**
- * Botones de acción en la pantalla de detalles.
- */
 @Composable
 fun ActionButtons(
     factura: FacturaEntity,
@@ -170,9 +159,6 @@ fun ActionButtons(
     }
 }
 
-/**
- * Diálogo de confirmación de eliminación.
- */
 @Composable
 fun ConfirmDeleteDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
