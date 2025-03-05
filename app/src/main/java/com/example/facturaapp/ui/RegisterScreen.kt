@@ -38,7 +38,7 @@ fun RegisterScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Registro") })
+            TopAppBar(title = { Text("Registro", style = MaterialTheme.typography.titleLarge) })
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
