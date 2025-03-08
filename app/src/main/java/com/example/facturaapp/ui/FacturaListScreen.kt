@@ -15,11 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.facturaapp.data.FacturaEntity
+import com.example.facturaapp.data.exportSelectedToCSV
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
 import java.text.NumberFormat
 import java.util.*
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +32,11 @@ fun FacturaListScreen(
     onFacturaClick: (FacturaEntity) -> Unit,
     onNavigateToForm: () -> Unit,
 ) {
+    val context = LocalContext.current
     val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsStateWithLifecycle()
+
+    val selectedFacturas = remember { mutableStateListOf<String>() }
+
 
     LaunchedEffect(isUserLoggedIn) {
         delay(500)
@@ -68,6 +74,17 @@ fun FacturaListScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            if(selectedFacturas.isNotEmpty()){
+                FloatingActionButton(
+                    onClick = {
+                        exportSelectedToCSV(context, selectedFacturas)
+                    }
+                ) {
+                    Icon(Icons.Default.ExitToApp, contentDescription = "Exportar a CSV")
+                }
+            }
         }
     ) { paddingValues ->
         if (isUserLoggedIn) {
@@ -80,7 +97,11 @@ fun FacturaListScreen(
                         contentPadding = PaddingValues(16.dp)
                     ) {
                         items(facturas, key = { it.id }) { factura ->
-                            FacturaCard(factura, onFacturaClick)
+                            FacturaCard(
+                                factura = factura,
+                                onFacturaClick = onFacturaClick,
+                                selectedFacturas=selectedFacturas
+                            )
                         }
                     }
                 }
@@ -106,10 +127,12 @@ fun EmptyStateMessage() {
 @Composable
 fun FacturaCard(
     factura: FacturaEntity,
-    onFacturaClick: (FacturaEntity) -> Unit
+    onFacturaClick: (FacturaEntity) -> Unit,
+    selectedFacturas: MutableList<String>
 ) {
     val decimalFormat = NumberFormat.getNumberInstance(Locale("es", "ES"))
     val totalFormatted = decimalFormat.format(factura.total)
+    val isSelected = remember { mutableStateOf(selectedFacturas.contains(factura.id)) }
 
     Card(
         modifier = Modifier
@@ -118,27 +141,41 @@ fun FacturaCard(
             .padding(4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Factura N.º: ${factura.numeroFactura}",
-                style = MaterialTheme.typography.titleMedium
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = isSelected.value,
+                onCheckedChange = { checked ->
+                    isSelected.value = checked
+                    if (checked) {
+                        selectedFacturas.add(factura.id)
+                    } else {
+                        selectedFacturas.remove(factura.id)
+                    }
+                }
             )
-            Text(
-                text = "Emisor: ${factura.emisor}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = "Receptor: ${factura.receptor}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = "Total: $totalFormatted €",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.End)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Factura N.º: ${factura.numeroFactura}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Emisor: ${factura.emisor}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "Receptor: ${factura.receptor}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "Total: $totalFormatted €",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
         }
     }
 }
-

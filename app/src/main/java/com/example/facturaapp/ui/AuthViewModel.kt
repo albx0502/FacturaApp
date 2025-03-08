@@ -1,5 +1,6 @@
 package com.example.facturaapp.ui
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.facturaapp.data.AuthRepository
@@ -58,7 +59,7 @@ class AuthViewModel(
     fun signIn(email: String, password: String) {
         viewModelScope.launch {
             repository.signInWithEmail(email, password).onSuccess {
-                FirebaseAuth.getInstance().currentUser?.reload()?.await() // 🔥 Esperar recarga
+                FirebaseAuth.getInstance().currentUser?.reload()?.await()
                 val user = FirebaseAuth.getInstance().currentUser
                 _authState.value = user
                 println("Inicio de sesión exitoso, usuario: ${user?.uid}")
