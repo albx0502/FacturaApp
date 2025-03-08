@@ -1,5 +1,8 @@
 package com.example.facturaapp.ui
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,10 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.facturaapp.data.FacturaEntity
+import com.example.facturaapp.data.generatePdf
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.*
 
@@ -24,7 +30,13 @@ fun FacturaDetailScreen(
     authViewModel: AuthViewModel,
     navController: NavController
 ) {
+
+
     val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsStateWithLifecycle()
+    val factura by viewModel.getFacturaById(facturaId).collectAsState(initial = null)
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+
 
     LaunchedEffect(isUserLoggedIn) {
         if (!isUserLoggedIn) {
@@ -35,8 +47,7 @@ fun FacturaDetailScreen(
         }
     }
 
-    val factura by viewModel.getFacturaById(facturaId).collectAsState(initial = null)
-    var showDeleteDialog by remember { mutableStateOf(false) }
+
 
     Scaffold(
         topBar = {
@@ -139,6 +150,22 @@ fun ActionButtons(
     onEditClick: (FacturaEntity) -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity ?: return
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    val pdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null) {
+            generatePdf(context, uri, factura)
+            scope.launch { snackbarHostState.showSnackbar("PDF guardado con éxito.") }
+        } else {
+            scope.launch { snackbarHostState.showSnackbar("Exportación cancelada.") }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -155,6 +182,10 @@ fun ActionButtons(
             )
         ) {
             Text("Eliminar")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = { pdfLauncher.launch("factura_${factura.numeroFactura}.pdf") }) {
+            Text("Exportar a PDF")
         }
     }
 }

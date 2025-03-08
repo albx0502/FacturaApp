@@ -1,5 +1,8 @@
 package com.example.facturaapp.ui
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +25,8 @@ import kotlinx.coroutines.flow.emptyFlow
 import java.text.NumberFormat
 import java.util.*
 import androidx.compose.ui.platform.LocalContext
+import com.example.facturaapp.data.saveCsvToUri
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,10 +38,30 @@ fun FacturaListScreen(
     onNavigateToForm: () -> Unit,
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity ?: return
     val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsStateWithLifecycle()
-
     val selectedFacturas = remember { mutableStateListOf<String>() }
+    var csvContent by remember { mutableStateOf<String?>(null) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    val exportCsvLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri != null) {
+            saveCsvToUri(context, uri, csvContent ?: "")
+            // Muestra mensaje de éxito
+            scope.launch {
+                snackbarHostState.showSnackbar("Exportación completada con éxito.")
+            }
+        } else {
+            // Muestra mensaje de error si el usuario cancela
+            scope.launch {
+                snackbarHostState.showSnackbar("Exportación cancelada.")
+            }
+        }
+    }
 
     LaunchedEffect(isUserLoggedIn) {
         delay(500)
@@ -76,16 +101,27 @@ fun FacturaListScreen(
             )
         },
         floatingActionButton = {
-            if(selectedFacturas.isNotEmpty()){
+            if (selectedFacturas.isNotEmpty()) {
                 FloatingActionButton(
                     onClick = {
-                        exportSelectedToCSV(context, selectedFacturas)
+                        exportSelectedToCSV(activity, selectedFacturas,
+                            onSuccess = { generatedCsv ->
+                                csvContent = generatedCsv
+                                exportCsvLauncher.launch("facturas_export.csv")
+                            },
+                            onError = {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Error al exportar CSV.")
+                                }
+                            }
+                        )
                     }
                 ) {
                     Icon(Icons.Default.ExitToApp, contentDescription = "Exportar a CSV")
                 }
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         if (isUserLoggedIn) {
             Column(modifier = Modifier.padding(paddingValues)) {
